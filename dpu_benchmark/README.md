@@ -73,7 +73,22 @@ bash setup_all.sh
 
 ---
 
+## Resizer: FPGA Image Resizer (non-CNN task)
+
+**Task**: Resize 4K→1080p image. Same power, 5.6x faster on FPGA.
+
+| | CPU (ARM) | FPGA (PL) | Speedup |
+|---|---|---|---|
+| Time/frame | 377ms | 66.8ms | **5.6x** |
+| Power | 3.34W | 3.51W | ~same |
+| FPS/Watt | 0.79 | 4.27 | **5.4x** |
+
+> FPGA efficiency extends beyond CNN inference to general image processing.
+> See `resizer/` for details.
+
+---
+
 ## Future Work
 - Add Jetson Nano GPU results for three-way comparison
 - Test newer models: YOLOv8, MobileNetV3 (requires Vitis AI Docker on x86 to compile)
-- Add helloworld FPGA vs CPU comparison (resizer: 381ms CPU vs 67ms FPGA, 5.7x speedup)
+- MNIST DPU vs CPU benchmark (model pre-installed with Kria-PYNQ)
