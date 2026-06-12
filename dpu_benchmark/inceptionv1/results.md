@@ -38,10 +38,14 @@ Open in browser: `http://<board-ip>:9090/lab` password: `xilinx`
 
 ## Gotchas
 
-### 1. InceptionV1 ONNX model cannot be downloaded via wget
-GitHub LFS and HuggingFace both blocked programmatic download.
-**Must download via browser**: https://github.com/onnx/models/blob/main/validated/vision/classification/inception_and_googlenet/inception_v1/model/inception-v1-9.onnx
-→ click "Download raw file"
+### 1. InceptionV1 ONNX model cannot be downloaded via wget — multiple reasons
+- **GitHub LFS deprecated** (July 2025): ONNX model zoo moved to HuggingFace
+- **HuggingFace requires login**: anonymous download returns 401
+- **torch.onnx.export on Windows failed**: `onnxscript` install hit Windows path-too-long error (260 char limit)
+- **Proxy model had wrong IR version**: a manually-built ONNX model had IR version 13, but onnxruntime on ARM only supports up to IR version 11 — caused `NotJSONError` on load
+
+**Solution that worked**: Download via browser from GitHub using "Download raw file" button.
+URL: https://github.com/onnx/models/blob/main/validated/vision/classification/inception_and_googlenet/inception_v1/model/inception-v1-9.onnx
 
 ### 2. DPU is extremely fast — CMA must be healthy
 At 217 FPS, InceptionV1 is the fastest model we benchmarked.

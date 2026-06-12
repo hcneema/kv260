@@ -179,6 +179,32 @@ cat /sys/class/hwmon/hwmon2/power1_input
 # Divide by 1,000,000 for Watts
 ```
 
+### xbutil syntax changed between XRT versions
+```bash
+# XRT 2.8.x:
+sudo xbutil program -p file.xclbin
+
+# XRT 2.13.x (OEM repo):
+sudo xbutil program -d 0 -u file.xclbin
+```
+We went through both versions trying to fix the DPU. The OEM repo (2.13) version is what works with Kria-PYNQ.
+
+### Snap packages do NOT work on Ubuntu 22.04
+The AMD snap packages (`xlnx-nlp-smartvision`, `xlnx-vai-lib-samples` etc.) were built for Ubuntu 20.04 / Python 3.8.
+On Ubuntu 22.04 with Python 3.10 they fail with library incompatibilities:
+- `libboost_filesystem.so.1.71.0` not found (22.04 has 1.74)
+- Python 3.8 `.so` bindings won't load in Python 3.10
+- `DpuOverlay()` hangs due to version mismatch
+**Use Kria-PYNQ instead** — it's built specifically for 22.04.
+
+### DpuOverlay() hangs if another process holds the DPU
+Only one process can use the DPU at a time. If a previous Jupyter kernel or script is still running:
+```bash
+sudo pkill -f jupyter-kernel   # kill stale kernels
+sudo systemctl restart jupyter  # or restart Jupyter entirely
+```
+Then reboot if CMA is still low.
+
 ---
 
 ## Software Versions (confirmed working)

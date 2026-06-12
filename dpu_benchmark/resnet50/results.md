@@ -67,3 +67,22 @@ If low — reboot. Each failed DPU load leaks CMA; after ~5 failures it hangs fo
 source /etc/profile.d/pynq_venv.sh   # required before running DPU scripts
 ```
 System Python has NumPy 2.x which conflicts with pynq compiled modules.
+
+### 5. ResNet50 ONNX model wget fails (GitHub LFS)
+The ONNX model zoo uses Git LFS — wget gets a 0-byte pointer file, not the real model.
+Download via browser: click "Download raw file" on GitHub, or use `setup_all.sh` which
+copies from the included `models/` directory.
+
+### 6. Board WiFi dropped during download + benchmark simultaneously
+Running heavy CPU inference while downloading the 98MB model over WiFi caused a crash.
+**Always separate download from benchmarking** — `setup_all.sh` handles this correctly.
+
+### 7. apt vitis-ai-runtime crashes with SIGSEGV — do not use
+We tried installing the Ubuntu universe package first:
+```bash
+# DO NOT DO THIS:
+sudo apt install vitis-ai-runtime
+```
+It crashes with `SIGSEGV` in `tools_extra_ops.cpython-310.so` on kernel 5.15.0-1027.
+Root cause: C++ ABI mismatch between the 2022-compiled package and the 2024 kernel.
+**Use Kria-PYNQ instead** — that's the only working path on Ubuntu 22.04.
