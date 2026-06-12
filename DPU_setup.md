@@ -67,6 +67,18 @@ After reboot, configure WiFi:
 sudo nmtui    # Activate a connection → pick your network → enter password
 ```
 
+### Set Static IP (strongly recommended — prevents IP changing on every reboot)
+```bash
+# Replace "YourWiFiName" with your actual SSID
+sudo nmcli connection modify "YourWiFiName" \
+    ipv4.method manual \
+    ipv4.addresses 192.168.68.60/22 \
+    ipv4.gateway 192.168.68.1 \
+    ipv4.dns "8.8.8.8 8.8.4.4"
+sudo nmcli connection up "YourWiFiName"
+```
+Verify: `ip addr show` should show `192.168.68.60`.
+
 ---
 
 ## Step 5 — Add Required APT Repos
@@ -77,13 +89,18 @@ sudo apt update
 
 ---
 
-## Step 6 — Install DPU Firmware
+## Step 6 — Install DPU Firmware (optional)
+The benchmark suite uses **B512** (from `dpu.bit` bundled in Kria-PYNQ) — no extra firmware needed.
+
+Only install this if you want to test B4096 (larger/faster DPU config):
 ```bash
+sudo add-apt-repository -y ppa:xilinx-apps/ppa
+sudo apt update
 sudo apt install -y xlnx-firmware-kv260-benchmark-b4096
 ```
 This installs the B4096 DPU bitstream to `/lib/firmware/xilinx/kv260-benchmark-b4096/`.
 
-> **Why B4096?** It's the largest/fastest DPU config for KV260. B512 (the default in pynq-dpu notebooks) is 5x slower.
+> **B512 vs B4096**: B512 is what all our confirmed benchmarks use (29-50x CPU advantage). B4096 is theoretically 5x faster but requires xmodels compiled specifically for it.
 
 ---
 
@@ -182,7 +199,7 @@ Only proceed to Step 11 if all 4 checks pass.
 ## Step 11 — Run DPU Inference
 Open this URL directly in your browser (replace IP with your board's IP):
 ```
-http://192.168.68.59:9090/lab/tree/pynq-dpu/dpu_yolov3.ipynb
+http://192.168.68.60:9090/lab/tree/pynq-dpu/dpu_yolov3.ipynb
 ```
 Password: **`xilinx`**
 
@@ -275,7 +292,7 @@ PYNQ is only the **runtime** on the KV260. Model development happens on a separa
 1. Train model          → PyTorch / TensorFlow (any machine)
 2. Quantize to INT8     → Vitis AI Docker on x86 PC
 3. Compile to .xmodel   → target: DPUCZDX8G_ISA1_B4096 (our DPU arch)
-4. Copy .xmodel to KV260 → scp model.xmodel ubuntu@192.168.68.59:/home/ubuntu/
+4. Copy .xmodel to KV260 → scp model.xmodel ubuntu@192.168.68.60:/home/ubuntu/
 5. Run inference        → PYNQ on KV260 loads and runs it
 ```
 
@@ -292,7 +309,7 @@ vai_c_xir \
   -o ./compiled/
 
 # Copy to KV260
-scp compiled/my_model_b4096.xmodel ubuntu@192.168.68.59:/home/ubuntu/
+scp compiled/my_model_b4096.xmodel ubuntu@192.168.68.60:/home/ubuntu/
 ```
 
 ### Step 5 — Run on KV260 (via PYNQ in Jupyter)
@@ -381,14 +398,21 @@ See Step 11 for the two verification cells to add inside Jupyter after any noteb
 
 ## Benchmark Results (KV260 revB, Ubuntu 22.04.4, kernel 5.15.0-1027)
 
-| | CPU | DPU (B512) | DPU (B4096 target) |
-|---|---|---|---|
-| Model | MobileNetV2 ONNX | YOLO v3 | YOLO / MobileNet |
-| FPS | ~12 fps | 6.64 fps | ~30+ fps (expected) |
-| Latency | ~83ms | ~150ms | ~33ms (expected) |
-| CPU load | ~100% | ~10% | ~10% |
+**CNN Inference — CPU vs DPU (B512 via pynq-dpu):**
 
-> Note: B512 vs MobileNet is not a fair comparison (different models). Next step is same model on both.
+| Model | Task | CPU FPS/W | DPU FPS/W | DPU advantage |
+|---|---|---|---|---|
+| ResNet50 | Classification | 0.37 | 10.56 | **29x** |
+| YOLOv3 | Detection | 0.03 | 1.51 | **50x** |
+| InceptionV1 | Classification | 0.92 | 27.44 | **30x** |
+
+**Image Processing — CPU vs FPGA (pynq-helloworld resizer):**
+
+| Task | CPU FPS/W | FPGA FPS/W | FPGA advantage |
+|---|---|---|---|
+| 4K→1080p resize | 0.79 | 4.27 | **5.4x** |
+
+> Full benchmark suite with all models and scripts: `dpu_benchmark/` directory.
 
 ---
 
