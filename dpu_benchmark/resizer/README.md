@@ -30,8 +30,8 @@ The resizer notebooks are **pre-installed** — no additional setup needed.
 ```
 http://<board-ip>:9090/lab  password: xilinx
 ```
-1. Open `pynq-resizer/resizer_ps.ipynb` → Run All Cells (CPU)
-2. Open `pynq-resizer/resizer_pl.ipynb` → Run All Cells (FPGA)
+1. Open `pynq-helloworld/resizer_ps.ipynb` → Run All Cells (CPU)
+2. Open `pynq-helloworld/resizer_pl.ipynb` → Run All Cells (FPGA)
 
 ### Run our benchmark scripts (with power measurement)
 ```bash
@@ -54,7 +54,7 @@ sudo python3 fpga_bench.py   # FPGA resizer with power (needs sudo for DMA)
 
 **No model files needed** — this benchmark uses the FPGA fabric directly (not DPU).
 The `resizer.bit` overlay comes pre-installed with Kria-PYNQ at:
-`/root/jupyter_notebooks/pynq-resizer/resizer.bit`
+`/root/jupyter_notebooks/pynq-helloworld/resizer.bit`
 
 ---
 

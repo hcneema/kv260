@@ -42,3 +42,28 @@ python3 /home/ubuntu/dpu_benchmark/resnet50/cpu_bench.py
 - `models/resnet50-v1-7.onnx` (98MB) — CPU model ✅ included
 - `models/dpu_resnet50.xmodel` (25MB) — DPU model ✅ included
 - `../shared/dpu.bit` (7MB) — FPGA bitstream ✅ included
+
+---
+
+## Gotchas
+
+### 1. CPU overheats at high frame counts
+ResNet50 on ARM CPU runs at 100% load — keep `N_BENCHMARK=20` max.
+The board crashed once when we tried 50 frames with simultaneous model download.
+**Always download the model separately first, then benchmark.**
+
+### 2. DPU must run from Jupyter, not bare terminal
+Python 3.10 mmap differences cause a silent infinite hang in bare terminal.
+Always run DPU notebooks from `http://<board-ip>:9090/lab`.
+
+### 3. Check CMA before running DPU
+```bash
+cat /proc/meminfo | grep Cma   # CmaFree must be >500MB
+```
+If low — reboot. Each failed DPU load leaks CMA; after ~5 failures it hangs forever.
+
+### 4. pynq venv required for DPU
+```bash
+source /etc/profile.d/pynq_venv.sh   # required before running DPU scripts
+```
+System Python has NumPy 2.x which conflicts with pynq compiled modules.

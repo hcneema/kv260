@@ -33,3 +33,29 @@ Open in browser: `http://<board-ip>:9090/lab` password: `xilinx`
 - `models/inception-v1-9.onnx` (27MB) — CPU model ✅ included
 - `models/dpu_tf_inceptionv1.xmodel` (6MB) — DPU model ✅ included
 - `../shared/dpu.bit` (7MB) — FPGA bitstream ✅ included
+
+---
+
+## Gotchas
+
+### 1. InceptionV1 ONNX model cannot be downloaded via wget
+GitHub LFS and HuggingFace both blocked programmatic download.
+**Must download via browser**: https://github.com/onnx/models/blob/main/validated/vision/classification/inception_and_googlenet/inception_v1/model/inception-v1-9.onnx
+→ click "Download raw file"
+
+### 2. DPU is extremely fast — CMA must be healthy
+At 217 FPS, InceptionV1 is the fastest model we benchmarked.
+But if CMA is exhausted, `DpuOverlay()` hangs silently.
+```bash
+cat /proc/meminfo | grep Cma   # CmaFree must be >500MB before running
+```
+
+### 3. DPU must run from Jupyter, not bare terminal
+Python 3.10 mmap differences cause silent infinite hang in bare terminal.
+Always use `http://<board-ip>:9090/lab`.
+
+### 4. pynq venv required
+```bash
+source /etc/profile.d/pynq_venv.sh
+```
+System Python has NumPy 2.x which conflicts with pynq compiled modules.
