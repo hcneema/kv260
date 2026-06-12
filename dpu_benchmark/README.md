@@ -5,13 +5,17 @@
 
 ## Summary — Confirmed Results (measured 2026-06-12)
 
-**Key finding: DPU is 29-50x more energy efficient than ARM CPU**
+**Key finding: FPGA/DPU is 5-50x more energy efficient than ARM CPU across all workloads**
 
-| Model | Task | CPU FPS | CPU W | CPU FPS/W | DPU FPS | DPU W | DPU FPS/W | DPU advantage |
-|---|---|---|---|---|---|---|---|---|
-| ResNet50 | Classification | 1.59 | 4.35 | 0.37 | 92.1 | 8.72 | 10.56 | **29x** |
-| YOLOv3 | Detection | 0.22 | 6.25 | 0.03 | 14.7 | 9.75 | 1.51 | **50x** |
-| InceptionV1 | Classification | 3.86 | 4.21 | 0.92 | 217.7 | 7.93 | 27.44 | **30x** |
+| Task | CPU FPS/W | Accelerator | Accel FPS/W | Advantage |
+|---|---|---|---|---|
+| ResNet50 (classification) | 0.37 | DPU B512 | 10.56 | **29x** |
+| YOLOv3 (detection) | 0.03 | DPU B512 | 1.51 | **50x** |
+| InceptionV1 (classification) | 0.92 | DPU B512 | 27.44 | **30x** |
+| 4K→1080p image resize | 0.79 | FPGA (PL) | 4.27 | **5.4x** |
+
+> DPU = DPUCZDX8G B512 neural network accelerator (CNN inference)
+> FPGA (PL) = Custom resize IP via pynq-helloworld (general image processing)
 
 ---
 
@@ -35,13 +39,14 @@ The DPU uses ~2x more power than idle CPU, but delivers 14-217x more FPS — mak
 
 ## Test Cases
 
-| Folder | CPU model | DPU model | Self-contained? |
+| Folder | CPU model | Accelerator model | Self-contained? |
 |---|---|---|---|
 | `resnet50/` | `resnet50-v1-7.onnx` (98MB) ✅ | `dpu_resnet50.xmodel` (25MB) ✅ | **Yes** |
 | `yolov3/` | `yolov3-10.onnx` (237MB) ✅ | `tf_yolov3_voc.xmodel` (61MB) ✅ | **Yes** |
 | `inceptionv1/` | `inception-v1-9.onnx` (27MB) ✅ | `dpu_tf_inceptionv1.xmodel` (6MB) ✅ | **Yes** |
+| `resizer/` | PIL/numpy (built-in) | `resizer.bit` (pre-installed by Kria-PYNQ) | **Yes** |
 
-Shared: `shared/dpu.bit` (7MB) + `shared/dpu.hwh` (760KB) — same for all models.
+Shared: `shared/dpu.bit` (7MB) + `shared/dpu.hwh` (760KB) — same for all DPU models.
 
 ---
 
@@ -70,21 +75,6 @@ bash setup_all.sh
 #    inceptionv1/dpu_bench.ipynb -> DPU (~217 FPS expected)
 #    inceptionv1/cpu_bench.ipynb -> CPU (~3.86 FPS expected)
 ```
-
----
-
-## Resizer: FPGA Image Resizer (non-CNN task)
-
-**Task**: Resize 4K→1080p image. Same power, 5.6x faster on FPGA.
-
-| | CPU (ARM) | FPGA (PL) | Speedup |
-|---|---|---|---|
-| Time/frame | 377ms | 66.8ms | **5.6x** |
-| Power | 3.34W | 3.51W | ~same |
-| FPS/Watt | 0.79 | 4.27 | **5.4x** |
-
-> FPGA efficiency extends beyond CNN inference to general image processing.
-> See `resizer/` for details.
 
 ---
 
