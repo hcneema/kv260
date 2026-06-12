@@ -1,3 +1,6 @@
+# Personal backup files
+backup/
+
 # Python cache
 __pycache__/
 *.pyc
