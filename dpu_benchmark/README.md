@@ -9,7 +9,7 @@
 
 | Task | CPU FPS/W | Accelerator | Accel FPS/W | Advantage |
 |---|---|---|---|---|
-| ResNet50 (classification) | 0.37 | DPU B512 | 10.56 | **29x** |
+| ResNet50 (classification) | 0.37 | DPU B512 | 10.56–11.74 | **29–32x** |
 | YOLOv3 (detection) | 0.03 | DPU B512 | 1.51 | **50x** |
 | InceptionV1 (classification) | 0.92 | DPU B512 | 27.44 | **30x** |
 | MNIST (digit classification) | 370.1 | DPU B512 | 510.5 | **1.4x** |

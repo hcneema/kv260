@@ -5,10 +5,12 @@
 
 | Metric | CPU (ARM Cortex-A53) | DPU (B512) | Speedup |
 |---|---|---|---|
-| FPS | 1.59 | 92.1 | **58x faster** |
-| Latency (ms/frame) | 629.1 | 10.9 | **58x lower** |
-| Power (Watts) | 4.35 | 8.72 | 2x more |
-| FPS/Watt | 0.37 | 10.56 | **29x more efficient** |
+| FPS | 1.59 | 92.1–95.7 | **58–60x faster** |
+| Latency (ms/frame) | 629.1 | 10.5–10.9 | **58–60x lower** |
+| Power (Watts) | 4.35 | 8.15–8.72 | ~2x more |
+| FPS/Watt | 0.37 | 10.56–11.74 | **29–32x more efficient** |
+
+> Two confirmed runs: Run 1 (script, 2026-06-12): 92.1 FPS, 10.56 FPS/Watt. Run 2 (notebook, 2026-06-13): 95.7 FPS, 11.74 FPS/Watt. Both consistent — variation is normal.
 
 ## Notes
 - Power measured via INA260 sensor at `/sys/class/hwmon/hwmon2/power1_input`
