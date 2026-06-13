@@ -12,7 +12,10 @@
 | ResNet50 (classification) | 0.37 | DPU B512 | 10.56 | **29x** |
 | YOLOv3 (detection) | 0.03 | DPU B512 | 1.51 | **50x** |
 | InceptionV1 (classification) | 0.92 | DPU B512 | 27.44 | **30x** |
+| MNIST (digit classification) | 370.1 | DPU B512 | 510.5 | **1.4x** |
 | 4K→1080p image resize | 0.79 | FPGA (PL) | 4.27 | **5.4x** |
+
+> MNIST note: Both CPU and DPU are fast (0.3-0.5ms/frame) — DPU advantage is smaller for tiny models. DPU shines on larger CNNs (ResNet50, YOLOv3).
 
 > DPU = DPUCZDX8G B512 neural network accelerator (CNN inference)
 > FPGA (PL) = Custom resize IP via pynq-helloworld (general image processing)
@@ -44,7 +47,10 @@ The DPU uses ~2x more power than idle CPU, but delivers 14-217x more FPS — mak
 | `resnet50/` | `resnet50-v1-7.onnx` (98MB) ✅ | `dpu_resnet50.xmodel` (25MB) ✅ | **Yes** |
 | `yolov3/` | `yolov3-10.onnx` (237MB) ✅ | `tf_yolov3_voc.xmodel` (61MB) ✅ | **Yes** |
 | `inceptionv1/` | `inception-v1-9.onnx` (27MB) ✅ | `dpu_tf_inceptionv1.xmodel` (6MB) ✅ | **Yes** |
+| `mnist/` | `mnist-12.onnx` (26KB) ✅ | `dpu_mnist_classifier.xmodel` (759KB) ✅ | **Yes*** |
 | `resizer/` | PIL/numpy (built-in) | `resizer.bit` (pre-installed by Kria-PYNQ) | **Yes** |
+
+> *MNIST: models included, dataset downloaded by setup.sh (~12MB from Google)
 
 Shared: `shared/dpu.bit` (7MB) + `shared/dpu.hwh` (760KB) — same for all DPU models.
 

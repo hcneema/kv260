@@ -30,6 +30,7 @@ AMD Kria KV260 Vision AI Starter Kit — robotics and edge AI benchmarking proje
 
 | Task | CPU FPS/W | FPGA FPS/W | Advantage |
 |---|---|---|---|
+| MNIST digit classification | 370.1 | DPU B512 | 510.5 | **1.4x** |
 | 4K→1080p resize | 0.79 | 4.27 | **5.4x** |
 
 > FPGA efficiency is not limited to AI — even general image processing benefits significantly.
