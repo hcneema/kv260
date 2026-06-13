@@ -149,6 +149,53 @@ Then open: `http://<board-ip>:9090/lab` password: `xilinx`
 
 ---
 
+## Step 8b — Fix onnxruntime for CPU Notebooks (required)
+
+By default `pip3 install onnxruntime` installs to `~/.local/lib/python3.10/`
+(user local) which the pynq venv does **not** include. CPU notebooks will fail
+with `ModuleNotFoundError: No module named 'onnxruntime'`.
+
+**Fix — install directly into pynq venv site-packages:**
+```bash
+sudo /usr/local/share/pynq-venv/bin/pip3 install onnxruntime \
+    --target /usr/local/share/pynq-venv/lib/python3.10/site-packages
+```
+
+**Also fix the Jupyter kernel to use the full pynq venv python path:**
+```bash
+sudo tee /usr/local/share/pynq-venv/share/jupyter/kernels/python3/kernel.json << 'EOF'
+{
+ "argv": [
+  "/usr/local/share/pynq-venv/bin/python3",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "Python 3 (ipykernel)",
+ "language": "python",
+ "metadata": {"debugger": true}
+}
+EOF
+sudo systemctl restart jupyter
+```
+
+**Verify it works:**
+```python
+# Run in any Jupyter notebook cell:
+import sys
+print(sys.executable)   # should show: /usr/local/share/pynq-venv/bin/python3
+import onnxruntime
+print(onnxruntime.__version__)   # should show: 1.23.2
+```
+
+> **Why this happens**: The default kernel.json uses `python` (no path) which
+> resolves to system python. System python doesn't include pynq_dpu.
+> The pynq venv python doesn't include user-local packages (~/.local).
+> Fixing both ensures all notebooks (CPU and DPU) use the same correct python.
+
+---
+
 ## Critical Gotchas (learned the hard way)
 
 ### DO NOT use apt vitis-ai-runtime
