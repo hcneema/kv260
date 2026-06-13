@@ -97,3 +97,24 @@ echo "  3. yolov3/dpu_bench.ipynb       DPU ~14.7 FPS,  1.51 FPS/W"
 echo "  4. yolov3/cpu_bench.ipynb       CPU ~0.22 FPS,  0.03 FPS/W  -> 50x advantage (slow!)"
 echo "  5. inceptionv1/dpu_bench.ipynb  DPU ~217 FPS,  27.44 FPS/W"
 echo "  6. inceptionv1/cpu_bench.ipynb  CPU ~3.86 FPS,  0.92 FPS/W  -> 30x advantage"
+
+# MNIST dataset (downloaded separately — too large for git)
+echo ""
+echo "Downloading MNIST dataset (from Google mirror)..."
+python3 << 'PYEOF'
+import urllib.request, os
+base = "https://storage.googleapis.com/cvdf-datasets/mnist/"
+files = ["train-images-idx3-ubyte.gz","train-labels-idx1-ubyte.gz","t10k-images-idx3-ubyte.gz","t10k-labels-idx1-ubyte.gz"]
+data_dir = "/home/ubuntu/mnist_data"
+os.makedirs(data_dir, exist_ok=True)
+for f in files:
+    dest = os.path.join(data_dir, f)
+    if os.path.exists(dest) and os.path.getsize(dest) > 1000:
+        print(f"  Cached: {f}")
+    else:
+        print(f"  Downloading {f}...", flush=True)
+        urllib.request.urlretrieve(base + f, dest)
+PYEOF
+
+# Copy MNIST ONNX model
+cp "$SCRIPT_DIR/mnist/models/mnist-12.onnx" /home/ubuntu/ 2>/dev/null && echo "mnist-12.onnx copied" || true
