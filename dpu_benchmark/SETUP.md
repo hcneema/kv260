@@ -30,18 +30,24 @@ xz -dc /path/to/iot-limerick-kria-*.img.xz | dd of=/dev/sdb bs=4M status=progres
 sync
 ```
 
+> Win32DiskImager also works on Windows — use that if you don't have Git Bash admin access.
+
 ---
 
-## Step 2 — First Boot & SSH
+## Step 2 — First Boot & SSH (Headless)
 
-1. Insert microSD, connect Ethernet to router, power on
-2. Wait 3-5 minutes (first boot resizes filesystem)
-3. Connect keyboard+monitor, login: `ubuntu` / `ubuntu`, set new password
-4. Enable SSH:
-```bash
-sudo systemctl enable ssh && sudo systemctl start ssh
-```
-5. Find IP: `ip addr show` or check router's DHCP list
+The Ubuntu image includes cloud-init. The `system-boot` FAT32 partition has a `user-data` file.
+Check that it contains `ssh_pwauth: true` — if so, SSH works out of the box with `ubuntu`/`ubuntu`.
+
+1. Insert microSD, connect Ethernet **directly to your router** (not to your PC — Windows ICS does not NAT TCP reliably)
+2. Power on, wait 3-5 minutes (first boot resizes filesystem)
+3. Find the IP from your router's DHCP client list (look for device named `kria`)
+4. SSH in: `ssh ubuntu@<board-ip>` — password: `ubuntu`, then set a new password
+
+> If you need keyboard+monitor: login `ubuntu`/`ubuntu`, set new password, enable SSH:
+> ```bash
+> sudo systemctl enable ssh && sudo systemctl start ssh
+> ```
 
 ---
 
@@ -56,6 +62,9 @@ sudo ./install-driver.sh    # say N to options, Y to reboot
 sudo nmtui                  # Activate a connection -> pick network -> enter password
 ```
 
+> The install script reboots the board automatically (exit code 255 is normal — not a failure).
+> Wait ~60 seconds then SSH back in.
+
 ---
 
 ## Step 4 — Set Static IP (recommended)
@@ -69,6 +78,14 @@ sudo nmcli connection modify "YourNetworkName" \
     ipv4.dns "8.8.8.8 8.8.4.4"
 sudo nmcli connection up "YourNetworkName"
 ```
+
+> **Set up SSH key auth before moving the board away from your desk:**
+> ```bash
+> # On your PC:
+> ssh-keygen -t ed25519 -f ~/.ssh/kv260_key
+> ssh-copy-id -i ~/.ssh/kv260_key ubuntu@<board-ip>
+> ```
+> You'll need it for autonomous / remote operation later.
 
 ---
 
@@ -94,6 +111,14 @@ This installs:
 - JupyterLab on port 9090 (password: `xilinx`)
 - XRT runtime
 - Sample DPU notebooks at `/root/jupyter_notebooks/pynq-dpu/`
+
+> **Reboot after install completes** — the installer exhausts CMA memory during pip builds.
+> CmaFree drops to ~50MB during install; a reboot restores it to ~1000MB.
+> ```bash
+> sudo reboot
+> # wait 60s, then SSH back in and verify:
+> cat /proc/meminfo | grep CmaFree   # must be >500MB before running DPU
+> ```
 
 ---
 
@@ -137,7 +162,7 @@ systemctl is-active jupyter
 ## Step 8 — Copy and Run Benchmarks
 
 ```bash
-# From your PC:
+# From your PC (scp the whole folder — git clone via HTTPS doesn't work in non-interactive SSH):
 scp -r dpu_benchmark/ ubuntu@<board-ip>:/home/ubuntu/
 
 # On the board:
@@ -146,6 +171,10 @@ bash setup_all.sh
 ```
 
 Then open: `http://<board-ip>:9090/lab` password: `xilinx`
+
+> **Note for Windows users**: Shell scripts edited on Windows have CRLF line endings that break bash.
+> `setup_all.sh` auto-fixes this. If you edit scripts manually, run:
+> `find /home/ubuntu/dpu_benchmark -name "*.sh" -exec sed -i "s/\r//" {} \;`
 
 ---
 
@@ -196,6 +225,39 @@ print(onnxruntime.__version__)   # should show: 1.23.2
 
 ---
 
+## Step 8c — Make dpu_benchmark Visible in Jupyter
+
+Jupyter serves from `/root/jupyter_notebooks/` but the benchmarks live in `/home/ubuntu/dpu_benchmark/`.
+Create a symlink so the folder appears in the Jupyter file browser:
+
+```bash
+sudo ln -s /home/ubuntu/dpu_benchmark /root/jupyter_notebooks/dpu_benchmark
+```
+
+Then refresh the Jupyter browser tab — `dpu_benchmark` will appear in the left panel.
+
+> `setup_all.sh` does this automatically. Only needed if you skipped `setup_all.sh`.
+
+---
+
+## Step 8d — dpu.xclbin (required for DpuOverlay)
+
+`DpuOverlay("dpu.bit")` requires a matching `dpu.xclbin` in the **same directory** as the notebook's working directory. This file is **not** the same as `dpu.bit` — it is a separate XRT binary.
+
+The `shared/dpu.xclbin` in this repo is the correct file (copied from the Kria-PYNQ install).
+`setup_all.sh` verifies it is present. If missing, copy it manually:
+
+```bash
+cp /usr/local/share/pynq-venv/lib/python3.10/site-packages/pynq_dpu/dpu.xclbin \
+   /home/ubuntu/dpu_benchmark/shared/
+```
+
+> The notebooks call `DpuOverlay("dpu.bit")` which looks for `dpu.xclbin` relative to the
+> **Jupyter working directory** (`/root`), not the notebook's folder. This is handled automatically
+> by the Kria-PYNQ runtime (`/etc/vart.conf` is updated on overlay load).
+
+---
+
 ## Critical Gotchas (learned the hard way)
 
 ### DO NOT use apt vitis-ai-runtime
@@ -214,6 +276,7 @@ Each failed attempt leaks CMA memory. After ~5 attempts `DpuOverlay()` hangs for
 cat /proc/meminfo | grep Cma   # CmaFree must be >500MB
 ```
 If low — reboot before running any notebook.
+CmaFree drops to ~50MB right after Kria-PYNQ install — always reboot before first DPU run.
 
 ### Always run DPU notebooks from Jupyter, not bare terminal
 Python 3.10 mmap differences cause silent infinite hang in bare terminal.
@@ -251,6 +314,70 @@ sudo pkill -f jupyter-kernel   # kill stale kernels
 sudo systemctl restart jupyter  # or restart Jupyter entirely
 ```
 Then reboot if CMA is still low.
+
+### SSH "Offending key" error after re-flashing the SD card
+After flashing a new SD card the board gets a new SSH host key, but your PC still has the old one.
+SSH refuses to connect with: `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` or `Offending ECDSA key in ~/.ssh/known_hosts:7`
+
+**Fix** — remove the old key and re-scan:
+```bash
+sed -i '/192.168.68.60/d' ~/.ssh/known_hosts
+ssh-keyscan 192.168.68.60 >> ~/.ssh/known_hosts
+```
+Or just delete `~/.ssh/known_hosts` if this is a dev machine and you don't care about strict host verification.
+
+### "sudo is disabled" means you are in Windows Git Bash, not SSH
+If you see `sudo: command not found` or `sudo is disabled on this machine`, you ran the command in a
+Windows terminal (Git Bash, PowerShell, WSL) instead of an SSH session to the board.
+Always confirm you are on the board: `whoami` should show `ubuntu`, not your Windows username.
+
+### Kria-PYNQ install compiles packages from source — do not interrupt
+The install takes ~25 minutes on ARM. Several packages (pycurl, etc.) are compiled from C source code.
+The CPU hits 40-50% during compilation. This is normal.
+- Do not Ctrl-C or close the SSH session
+- If interrupted, re-run `sudo bash install.sh -b KV260` from the Kria-PYNQ directory
+- The install is idempotent — re-running is safe
+
+### apt-get update hangs connecting to IPv6 addresses
+If `apt-get update` hangs with lines like:
+`0% [Connecting to ports.ubuntu.com (2a06:bc80:...)]`
+
+Force IPv4:
+```bash
+sudo apt-get -o Acquire::ForceIPv4=true update
+```
+This happens when the network doesn't route IPv6 properly (common with some routers and ICS setups).
+
+### onnxruntime GPU warning is harmless
+When importing onnxruntime you will see:
+```
+[W:onnxruntime:Default, device_discovery.cc:164] GPU device discovery failed: ...
+    Failed to open file: "/sys/class/drm/card1/device/vendor"
+```
+This is expected — the KV260 has no GPU. onnxruntime falls back to CPU inference, which is correct.
+The DPU is accessed through pynq-dpu, not onnxruntime.
+
+### vart.conf modification message during DpuOverlay() is normal
+When loading a DPU overlay you will see:
+```
+/etc/vart.conf file was modified, replacing contents '/run/media/mmcblk0p1/dpu.xclbin'
+with '/usr/lib/dpu.xclbin'.
+```
+This is normal — the runtime updates the xclbin path for the current session. It is not an error.
+
+### git clone via HTTPS fails in non-interactive SSH sessions
+Git tries to open `/dev/tty` for credential prompts even on public repos, which doesn't exist in
+non-interactive SSH. Use `scp` to copy files from your PC to the board instead:
+```bash
+# From your PC:
+scp -r dpu_benchmark/ ubuntu@<board-ip>:/home/ubuntu/
+```
+
+### Windows ICS does not work for board internet
+Windows Internet Connection Sharing (ICS) passes ICMP (ping works) but does not reliably NAT TCP.
+`apt-get update`, `curl`, `git clone` all hang or fail through ICS.
+**Fix**: Connect the board directly to your router via Ethernet. Both your PC (WiFi) and board (Ethernet)
+on the same router — SSH works fine from PC to board.
 
 ---
 

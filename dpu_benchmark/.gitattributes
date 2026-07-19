@@ -1,0 +1,17 @@
+# Ensure shell scripts always have LF line endings on checkout (not CRLF)
+# This prevents "bad interpreter: \r" errors when running on Linux
+*.sh text eol=lf
+*.py text eol=lf
+*.ipynb text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# Binary files — no line ending conversion
+*.bit binary
+*.hwh binary
+*.xclbin binary
+*.xmodel binary
+*.onnx binary
+*.jpg binary
+*.png binary
+*.gz binary
