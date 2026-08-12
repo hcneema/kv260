@@ -30,6 +30,8 @@ Downloaded as a zip archive (8 parts). Extract all parts first — Windows will 
 4. Click **Write**
 5. Wait ~5-10 minutes for the write to complete
 
+**Also available in Google Drive — kv260 folder** (faster than re-downloading from Ubuntu).
+
 Download from: https://ubuntu.com/download/amd (scroll to bottom, KV260, Ubuntu 22.04)
 
 ---
