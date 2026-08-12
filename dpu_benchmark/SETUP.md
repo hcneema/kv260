@@ -97,17 +97,17 @@ sudo nmcli connection up "YourNetworkName"
 
 **This is the critical step.** Do NOT use `pip install pynq-dpu` directly — it fails with missing Xilinx headers.
 
+**Must be run from an interactive SSH session — not via piped password (`echo pass | sudo -S`).**
+The install has a device tree overlay step that silently skips with non-interactive sudo. `setup_all.sh` detects and fixes this, but better to get it right the first time.
+
 ```bash
-git clone https://github.com/Xilinx/Kria-PYNQ /home/ubuntu/Kria-PYNQ
+git clone https://github.com/hcneema/Kria-PYNQ /home/ubuntu/Kria-PYNQ
 cd /home/ubuntu/Kria-PYNQ
 sudo bash install.sh -b KV260
 ```
 
-**Repo**: https://github.com/Xilinx/Kria-PYNQ  
+Use the fork (`hcneema/Kria-PYNQ`) — AMD may remove or change the original.  
 **Version used**: Kria-PYNQ 3.0 (installs pynq-dpu 2.5.1, PYNQ 3.0.1)
-
-> ⚠️ **Fork this repo** — AMD may remove or change it. The install script downloads pre-built binaries from Xilinx servers. If those go offline, the install will fail.
-> Fork at: https://github.com/Xilinx/Kria-PYNQ → click "Fork"
 
 This installs:
 - PYNQ 3.0.1 with pre-built aarch64 binaries
@@ -169,10 +169,12 @@ systemctl is-active jupyter
 # From your PC (scp the whole folder — git clone via HTTPS doesn't work in non-interactive SSH):
 scp -r dpu_benchmark/ ubuntu@<board-ip>:/home/ubuntu/
 
-# On the board:
+# On the board — this is the main automation step, run it after Kria-PYNQ install:
 cd /home/ubuntu/dpu_benchmark
 bash setup_all.sh
 ```
+
+> **Before running setup_all.sh:** Copy `shared/wifi.nmconnection` back into the folder if you have it — this file is gitignored (contains your WiFi password) but setup_all.sh uses it to configure static IP. If it's missing, setup_all.sh will warn and skip WiFi config. You can set it up manually later with `nmtui`.
 
 Then open: `http://<board-ip>:9090/lab` password: `xilinx`
 

@@ -37,7 +37,11 @@ echo "Checking prerequisites..."
 # Check pynq_dpu — must source pynq_venv.sh first (sets BOARD, XILINX_XRT, activates venv)
 source /etc/profile.d/pynq_venv.sh 2>/dev/null || true
 /usr/local/share/pynq-venv/bin/python3 -c "from pynq_dpu import DpuOverlay; print('pynq_dpu: OK')" 2>/dev/null || {
-    echo "pynq_dpu not found — installing now..."
+    echo "pynq_dpu not found — attempting pip install as fallback..."
+    echo "WARNING: This only installs the Python package, not the device tree overlay or overlay files."
+    echo "  The pynq-dtbo service below will fix the overlay. But prefer a full Kria-PYNQ install:"
+    echo "  git clone https://github.com/hcneema/Kria-PYNQ /home/ubuntu/Kria-PYNQ"
+    echo "  sudo bash /home/ubuntu/Kria-PYNQ/install.sh -b KV260"
     sudo bash -c 'source /etc/profile.d/pynq_venv.sh && python3 -m pip install pynq-dpu==2.5 --no-build-isolation -q'
     /usr/local/share/pynq-venv/bin/python3 -c "from pynq_dpu import DpuOverlay; print('pynq_dpu: OK')" 2>/dev/null || {
         echo "ERROR: pynq_dpu install failed. Install Kria-PYNQ first: sudo bash /home/ubuntu/Kria-PYNQ/install.sh -b KV260"
@@ -217,29 +221,6 @@ for ENTRY in \
     fi
 done
 
-echo ""
-echo "========================================"
-echo " Setup Complete!"
-echo "========================================"
-echo ""
-echo "IMPORTANT: Run 'sudo reboot' now to activate WiFi driver."
-echo "After reboot, unplug Ethernet — board will be at 192.168.68.60 via WiFi."
-echo ""
-echo "Open Jupyter at: http://$(hostname -I | awk '{print $1}'):9090/tree"
-echo "Password: xilinx"
-echo ""
-echo "Run notebooks in this order:"
-echo "  1. resnet50/dpu_bench.ipynb     DPU ~96 FPS,   11.84 FPS/W"
-echo "  2. resnet50/cpu_bench.ipynb     CPU ~1.6 FPS,   0.37 FPS/W  -> 32x advantage"
-echo "  3. yolov3/dpu_bench.ipynb       DPU ~14.7 FPS,  1.51 FPS/W"
-echo "  4. yolov3/cpu_bench.ipynb       CPU ~0.22 FPS,  0.03 FPS/W  -> 50x advantage (slow!)"
-echo "  5. inceptionv1/dpu_bench.ipynb  DPU ~217 FPS,  27.44 FPS/W"
-echo "  6. inceptionv1/cpu_bench.ipynb  CPU ~3.86 FPS,  0.92 FPS/W  -> 30x advantage"
-echo ""
-echo "Before each DPU notebook, check CMA:"
-echo "  cat /proc/meminfo | grep CmaFree   # must be >500000 kB"
-echo "  If low: sudo reboot, wait 60s, re-open Jupyter"
-
 # MNIST dataset (downloaded separately — too large for git)
 echo ""
 echo "Downloading MNIST dataset (from Google mirror)..."
@@ -281,8 +262,9 @@ echo ""
 echo "Configuring WiFi static IP..."
 WIFI_CONN_SRC="$SCRIPT_DIR/shared/wifi.nmconnection"
 WIFI_CONN_DST="/etc/NetworkManager/system-connections"
-if [ -d "$WIFI_CONN_DST" ] && ls "$WIFI_CONN_DST"/*.nmconnection 2>/dev/null | grep -q .; then
-    echo "WiFi: connection already configured"
+WIFI_CONN_NAME=$(grep "^id=" "$WIFI_CONN_SRC" 2>/dev/null | cut -d= -f2)
+if [ -n "$WIFI_CONN_NAME" ] && [ -f "$WIFI_CONN_DST/${WIFI_CONN_NAME}.nmconnection" ]; then
+    echo "WiFi: connection '${WIFI_CONN_NAME}' already configured"
 elif [ -f "$WIFI_CONN_SRC" ]; then
     CONN_NAME=$(grep "^id=" "$WIFI_CONN_SRC" | cut -d= -f2)
     sudo cp "$WIFI_CONN_SRC" "$WIFI_CONN_DST/${CONN_NAME}.nmconnection"
@@ -294,3 +276,53 @@ else
     echo "WARNING: shared/wifi.nmconnection not found — WiFi not configured"
     echo "  Copy your NM connection file to shared/wifi.nmconnection and re-run"
 fi
+
+# === End-to-end DPU sanity test ===
+echo ""
+echo "Running end-to-end DPU sanity test..."
+XMODEL="$SCRIPT_DIR/resnet50/models/dpu_resnet50.xmodel"
+if [ -f "$XMODEL" ] && cat /sys/kernel/config/device-tree/overlays/pynq/status 2>/dev/null | grep -q applied; then
+    sudo -E /usr/local/share/pynq-venv/bin/python3 - << PYEOF 2>&1
+from pynq_dpu import DpuOverlay
+import numpy as np, time
+ol = DpuOverlay('dpu.bit')
+ol.load_model('$XMODEL')
+dpu = ol.runner
+inp = [np.zeros(tuple(t.dims), dtype=np.float32) for t in dpu.get_input_tensors()]
+out = [np.zeros(tuple(t.dims), dtype=np.float32) for t in dpu.get_output_tensors()]
+dpu.wait(dpu.execute_async(inp, out))
+t0 = time.time()
+for _ in range(20): dpu.wait(dpu.execute_async(inp, out))
+fps = 20 / (time.time() - t0)
+print(f"DPU sanity test PASSED: ResNet50 {fps:.0f} FPS (expected ~96)")
+PYEOF
+else
+    echo "DPU sanity test skipped — xmodel or dtbo not ready (run after reboot if dtbo was just created)"
+fi
+
+echo ""
+echo "========================================"
+echo " Setup Complete!"
+echo "========================================"
+echo ""
+echo "IMPORTANT: Run 'sudo reboot' now to activate WiFi driver."
+echo "After reboot, unplug Ethernet — board will be at 192.168.68.60 via WiFi."
+echo ""
+echo "Open Jupyter at: http://$(hostname -I | awk '{print $1}'):9090/tree"
+echo "Password: xilinx"
+echo ""
+echo "Run notebooks in this order:"
+echo "  1. resnet50/dpu_bench.ipynb     DPU ~96 FPS,   11.81 FPS/W"
+echo "  2. resnet50/cpu_bench.ipynb     CPU ~1.6 FPS,   0.37 FPS/W  -> 32x advantage"
+echo "  3. yolov3/dpu_bench.ipynb       DPU ~14.7 FPS,  1.52 FPS/W"
+echo "  4. yolov3/cpu_bench.ipynb       CPU ~0.22 FPS,  0.03 FPS/W  -> 50x advantage (slow!)"
+echo "  5. inceptionv1/dpu_bench.ipynb  DPU ~218 FPS,  27.55 FPS/W"
+echo "  6. inceptionv1/cpu_bench.ipynb  CPU ~3.86 FPS,  0.92 FPS/W  -> 30x advantage"
+echo ""
+echo "Or run directly from SSH (no Jupyter needed):"
+echo "  source /etc/profile.d/pynq_venv.sh"
+echo "  sudo -E /usr/local/share/pynq-venv/bin/python3 resnet50/dpu_bench.py"
+echo ""
+echo "Before each DPU run, check CMA:"
+echo "  cat /proc/meminfo | grep CmaFree   # must be >500000 kB"
+echo "  If low: sudo reboot, wait 60s, re-open Jupyter"
