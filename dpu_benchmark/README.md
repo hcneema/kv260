@@ -3,54 +3,56 @@
 
 ---
 
-## Summary — Confirmed Results (measured 2026-06-12)
+## Summary — Confirmed Results (measured 2026-08-12, 10 rounds each)
 
-**Key finding: FPGA/DPU is 5-50x more energy efficient than ARM CPU across all workloads**
+**Key finding: FPGA/DPU is 18–21x more energy efficient than ARM CPU across all CNN workloads**
 
-| Task | CPU FPS/W | Accelerator | Accel FPS/W | Advantage |
-|---|---|---|---|---|
-| ResNet50 (classification) | 0.37 | DPU B512 | 10.56–11.74 | **29–32x** |
-| YOLOv3 (detection) | 0.03 | DPU B512 | 1.51 | **50x** |
-| InceptionV1 (classification) | 0.92 | DPU B512 | 27.44 | **30x** |
-| MNIST (digit classification) | 370.1 | DPU B512 | 510.5 | **1.4x** |
-| 4K→1080p image resize | 0.79 | FPGA (PL) | 4.27 | **5.4x** |
+| Task | CPU FPS | DPU FPS | Speedup | CPU FPS/W† | DPU FPS/W† | Efficiency gain |
+|---|---|---|---|---|---|---|
+| ResNet50 (classification) | 1.58±0.04 | 84.38±0.05 | **53.4x** | 1.33±0.03 | 28.65±0.79 | **21.5x** |
+| InceptionV1 (classification) | 3.86±0.01 | 165.75±0.33 | **42.9x** | 3.35±0.04 | 64.73±3.84 | **19.3x** |
+| YOLOv3 (object detection) | 0.22±0.00 | 13.23±0.02 | **60.1x** | 0.17±0.01 | 3.09±0.10 | **18.2x** |
+| MNIST (digit classification) | 2415±18 | 3642±34 | **1.5x** | — | — | — |
 
-> MNIST note: Both CPU and DPU are fast (0.3-0.5ms/frame) — DPU advantage is smaller for tiny models. DPU shines on larger CNNs (ResNet50, YOLOv3).
-
-> DPU = DPUCZDX8G B512 neural network accelerator (CNN inference)
-> FPGA (PL) = Custom resize IP via pynq-helloworld (general image processing)
+> †FPS/W_delta = FPS ÷ (active power − idle power), removing fixed OS overhead (~4.83 W). This is the primary efficiency metric — see RESULTS.md for full detail.
+>
+> MNIST note: Both CPU and DPU complete in <0.5ms/frame. DPU advantage is small for tiny models — the DPU shines on larger CNNs.
 
 ---
 
 ## Platform
+
 - **Board**: AMD Kria KV260 revB
 - **OS**: Ubuntu 22.04.4 LTS, kernel 5.15.0-1027-xilinx-zynqmp
-- **CPU**: ARM Cortex-A53 quad-core @ 1.3GHz
-- **DPU**: DPUCZDX8G B512 (via pynq-dpu, `dpu.bit`)
-- **Power sensor**: INA260 at `/sys/class/hwmon/hwmon2/power1_input`
-- **CPU runtime**: ONNX Runtime 1.23.2
-- **DPU runtime**: pynq-dpu 2.5.1 (Kria-PYNQ 3.0)
+- **CPU**: ARM Cortex-A53 quad-core @ 1333 MHz (userspace governor, fixed)
+- **DPU**: DPUCZDX8G B512 (via pynq-dpu 2.5.0, `dpu.bit`)
+- **RAM**: 3911 MB total, 1000 MB CMA
+- **Power sensor**: INA260 at `/sys/class/hwmon/hwmon2/power1_input` (~200ms sampling)
+- **CPU runtime**: ONNX Runtime 1.23.2 (intra=4 threads, ORT_ENABLE_ALL)
+- **DPU runtime**: pynq-dpu 2.5.0 (Kria-PYNQ 3.0)
+- **DRAM bandwidth**: 2099.5 MB/s (measured, numpy 128 MB sequential read)
+- **Idle power**: 4.832 W
 
 ---
 
 ## Why FPS/Watt Matters
+
 Raw FPS is not the whole story. For battery-powered robots and always-on vision systems, **energy efficiency** determines real-world feasibility.
 
-The DPU uses ~2x more power than idle CPU, but delivers 14-217x more FPS — making it 29-50x more efficient per watt.
+The DPU consumes ~2–4 W above idle while delivering 43–60x more throughput — making it 18–21x more efficient per watt of inference power. This advantage is measured conservatively using only the power delta above idle, excluding fixed OS overhead.
 
 ---
 
 ## Test Cases
 
-| Folder | CPU model | Accelerator model | Self-contained? |
+| Folder | CPU model | DPU model | Rounds |
 |---|---|---|---|
-| `resnet50/` | `resnet50-v1-7.onnx` (98MB) ✅ | `dpu_resnet50.xmodel` (25MB) ✅ | **Yes** |
-| `yolov3/` | `yolov3-10.onnx` (237MB) ✅ | `tf_yolov3_voc.xmodel` (61MB) ✅ | **Yes** |
-| `inceptionv1/` | `inception-v1-9.onnx` (27MB) ✅ | `dpu_tf_inceptionv1.xmodel` (6MB) ✅ | **Yes** |
-| `mnist/` | `mnist-12.onnx` (26KB) ✅ | `dpu_mnist_classifier.xmodel` (759KB) ✅ | **Yes*** |
-| `resizer/` | PIL/numpy (built-in) | `resizer.bit` (pre-installed by Kria-PYNQ) | **Yes** |
+| `resnet50/` | `resnet50-v1-7.onnx` (98MB) | `dpu_resnet50.xmodel` (25MB) | 10 |
+| `yolov3/` | `yolov3-10.onnx` (237MB) | `tf_yolov3_voc.xmodel` (61MB) | 10 |
+| `inceptionv1/` | `inception-v1-9.onnx` (27MB) | `dpu_tf_inceptionv1.xmodel` (6MB) | 10 |
+| `mnist/` | `mnist-12.onnx` (26KB) | `dpu_mnist_classifier.xmodel` (759KB) | 10 |
 
-> *MNIST: models included, dataset downloaded by setup.sh (~12MB from Google)
+All DPU models are compiled for DPUCZDX8G B512 (INT8 fixed-point). CPU models run in FP32 via ONNX Runtime.
 
 Shared: `dpu.bit` + `dpu.hwh` are bundled inside the pynq-dpu package (not in this repo). `shared/dpu.xclbin` is in this repo — required by DpuOverlay alongside the bitstream.
 
@@ -58,7 +60,7 @@ Shared: `dpu.bit` + `dpu.hwh` are bundled inside the pynq-dpu package (not in th
 
 ## How to Run on a Fresh Board
 
-> **See `SETUP.md` for the full step-by-step board setup guide** including all the gotchas we hit during our 7+ hour first-time setup.
+> **See `DPU_setup.md` for the full step-by-step board setup guide** including all the gotchas we hit during our 7+ hour first-time setup.
 
 Key things that aren't obvious:
 - **SSH is not enabled by default** — requires monitor + keyboard on first boot to run `sudo systemctl enable ssh && sudo systemctl start ssh`
@@ -66,12 +68,12 @@ Key things that aren't obvious:
 - **Kria-PYNQ install must use interactive sudo** — run `sudo bash install.sh -b KV260` from an interactive SSH session, not via piped password
 
 ```bash
-# 1. Flash SD card, enable SSH via monitor (see SETUP.md Steps 1-3)
+# 1. Flash SD card, enable SSH via monitor (see DPU_setup.md Steps 1-3)
 
 # 2. Lock XRT before anything else
 sudo apt-mark hold xrt
 
-# 3. Install Kria-PYNQ (interactive SSH session — see SETUP.md Step 5, ~25 min)
+# 3. Install Kria-PYNQ (interactive SSH session — see DPU_setup.md Step 6, ~25 min)
 git clone https://github.com/hcneema/Kria-PYNQ /home/ubuntu/Kria-PYNQ
 cd /home/ubuntu/Kria-PYNQ && sudo bash install.sh -b KV260
 
@@ -83,23 +85,32 @@ ssh ubuntu@<board-ip>
 cd /home/ubuntu/dpu_benchmark
 bash setup_all.sh
 
-# 6. Open Jupyter at http://<board-ip>:9090/lab  password: xilinx
-#    Or run directly from SSH (no Jupyter needed):
-#    source /etc/profile.d/pynq_venv.sh
-#    sudo -E /usr/local/share/pynq-venv/bin/python3 resnet50/dpu_bench.py
+# 6. Run the main CNN benchmark (ResNet50, InceptionV1, YOLOv3 — DPU + CPU, 10 rounds)
+nohup sudo bash -c 'source /etc/profile.d/pynq_venv.sh && \
+    /usr/local/share/pynq-venv/bin/python3 run_benchmarks.py 10' \
+    > bench_run.log 2>&1 &
 
-# 7. Run notebooks in order:
-#    resnet50/dpu_bench.ipynb    -> DPU (~92 FPS expected)
-#    resnet50/cpu_bench.ipynb    -> CPU (~1.6 FPS expected)
-#    yolov3/dpu_bench.ipynb      -> DPU (~14.7 FPS expected)
-#    yolov3/cpu_bench.ipynb      -> CPU (~0.22 FPS, slow! ~46s total)
-#    inceptionv1/dpu_bench.ipynb -> DPU (~217 FPS expected)
-#    inceptionv1/cpu_bench.ipynb -> CPU (~3.86 FPS expected)
+# 7. Run the MNIST benchmark (DPU + CPU, 10 rounds, writes to RESULTS_extra.md)
+nohup sudo bash -c 'source /etc/profile.d/pynq_venv.sh && \
+    /usr/local/share/pynq-venv/bin/python3 run_benchmarks_extra.py' \
+    > bench_extra.log 2>&1 &
 ```
 
 ---
 
+## Results Files
+
+| File | Contents |
+|---|---|
+| `RESULTS.md` | Full 10-round data for ResNet50, InceptionV1, YOLOv3 — per-round FPS, latency (p95/p99), power, FPS/W, temperature, CMA, XIR model metadata, DRAM bandwidth |
+| `RESULTS_extra.md` | Full 10-round data for MNIST DPU + CPU |
+| `raw_latencies/` | Per-frame latency CSVs for all runs |
+| `raw_power/` | Timestamped power waveform CSVs for all DPU runs |
+
+---
+
 ## Future Work
+
 - Add Jetson Nano GPU results for three-way comparison
 - Test newer models: YOLOv8, MobileNetV3 (requires Vitis AI Docker on x86 to compile)
-- MNIST DPU vs CPU benchmark (model pre-installed with Kria-PYNQ)
+- Resizer FPGA benchmark (pynq-helloworld unsupported on KV260/Ubuntu 22.04 — needs custom bitstream)
