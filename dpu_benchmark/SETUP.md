@@ -17,20 +17,20 @@
 
 ## Step 1 — Flash Ubuntu 22.04
 
-Download from: https://ubuntu.com/download/amd (scroll to bottom, KV260, Ubuntu 22.04)
-
-**Use `dd`, NOT Etcher** (Etcher crashes at 99% on large images):
-```bash
-# On Windows Git Bash (run as Administrator):
-# First find your microSD device:
-cat /proc/partitions
-# Look for ~59GB device, e.g. /dev/sdb
-
-xz -dc /path/to/iot-limerick-kria-*.img.xz | dd of=/dev/sdb bs=4M status=progress
-sync
+**Image used (confirmed working):**
 ```
+iot-limerick-classic-desktop-2204-20240304-165.img
+```
+Downloaded as a zip archive (8 parts). Extract all parts first — Windows will reassemble them automatically into the `.img` file.
 
-> Win32DiskImager also works on Windows — use that if you don't have Git Bash admin access.
+**Flash with Win32DiskImager (Windows):**
+1. Download and open Win32DiskImager
+2. Click the folder icon, select the extracted `.img` file
+3. Select the SD card drive letter (be careful — wrong drive = data loss)
+4. Click **Write**
+5. Wait ~5-10 minutes for the write to complete
+
+Download from: https://ubuntu.com/download/amd (scroll to bottom, KV260, Ubuntu 22.04)
 
 ---
 
