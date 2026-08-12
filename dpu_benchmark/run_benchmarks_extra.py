@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 KV260 Extra Benchmarks — MNIST and Image Resizer
-Appends results to existing RESULTS.md.
+Writes results to RESULTS_extra.md (separate from main RESULTS.md).
 
 Run order:
   Phase 1 — MNIST DPU + CPU  (10 rounds, DPU overlay)
@@ -28,7 +28,7 @@ PAUSE_BETWEEN_ROUNDS = 300
 IDLE_POWER_DURATION  = 10
 POWER_PATH           = "/sys/class/hwmon/hwmon2/power1_input"
 SCRIPT_DIR           = os.path.dirname(os.path.abspath(__file__))
-RESULTS_FILE         = os.path.join(SCRIPT_DIR, "RESULTS.md")
+RESULTS_FILE         = os.path.join(SCRIPT_DIR, "RESULTS_extra.md")
 RAW_DIR              = os.path.join(SCRIPT_DIR, "raw_latencies")
 RAW_POWER_DIR        = os.path.join(SCRIPT_DIR, "raw_power")
 DATA_DIR             = "/home/ubuntu/mnist_data"

@@ -300,3 +300,6 @@ _Summary from 10 rounds. Raw per-frame latencies in `raw_latencies/`. Power wave
 - **YOLOv3 CPU latency std dev** is high (80±107ms) due to occasional scheduling jitter on the ~4.6s per-frame runs. The median is stable.
 - **CPU governor is `userspace` at fixed 1333 MHz** — no thermal throttling occurred. All 4 cores ran at max frequency throughout all CPU runs.
 - **CMA free memory** dropped gradually across rounds (856 MB → 711 MB for YOLOv3) due to DPU memory not being fully released between rounds. Remained well above the 500 MB safety threshold throughout.
+
+---
+
