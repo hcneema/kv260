@@ -378,12 +378,23 @@ On Ubuntu 22.04 with Python 3.10 they fail with library incompatibilities:
 **Use Kria-PYNQ instead** — it's built specifically for 22.04.
 
 ### DpuOverlay() hangs if another process holds the DPU
-Only one process can use the DPU at a time. If a previous Jupyter kernel or script is still running:
-```bash
-sudo pkill -f jupyter-kernel   # kill stale kernels
-sudo systemctl restart jupyter  # or restart Jupyter entirely
+Only one process can use the DPU at a time. The hang message is:
 ```
-Then reboot if CMA is still low.
+waiting for process to release the resource: DPU_0
+```
+This happens if a Jupyter kernel or previous script still has `/dev/dri/renderD128` open.
+
+**Find and kill the holder:**
+```bash
+sudo fuser /dev/dri/renderD128        # shows PIDs holding the device
+sudo kill -9 <pid>                    # kill each one
+sudo fuser /dev/dri/renderD128        # verify it's free (no output = free)
+```
+Or to nuke all Jupyter kernels at once:
+```bash
+sudo systemctl restart jupyter
+```
+Then reboot if CMA is still low. Note: this also affects running `.py` files from SSH while a Jupyter notebook has the DPU loaded — same fix applies.
 
 ### SSH "Offending key" error after re-flashing the SD card
 After flashing a new SD card the board gets a new SSH host key, but your PC still has the old one.
