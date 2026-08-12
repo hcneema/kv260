@@ -260,6 +260,26 @@ cp /usr/local/share/pynq-venv/lib/python3.10/site-packages/pynq_dpu/dpu.xclbin \
 
 ## Critical Gotchas (learned the hard way)
 
+### Disable unattended-upgrades immediately after setup
+Ubuntu's automatic updater runs in the background and can silently update the kernel, XRT, or Python packages — any of which can break DPU. Disable it right after Kria-PYNQ is confirmed working:
+
+```bash
+sudo systemctl disable unattended-upgrades
+sudo systemctl stop unattended-upgrades
+sudo systemctl disable apt-daily.timer
+sudo systemctl stop apt-daily.timer
+sudo systemctl disable apt-daily-upgrade.timer
+sudo systemctl stop apt-daily-upgrade.timer
+```
+
+Verify:
+```bash
+systemctl is-enabled unattended-upgrades    # should say: disabled
+systemctl is-enabled apt-daily.timer        # should say: disabled
+```
+
+After this, updates only happen if you manually run `sudo apt upgrade`. The working versions are pinned in the Software Versions table below — do not upgrade them.
+
 ### DO NOT use apt vitis-ai-runtime
 ```bash
 # NEVER do this — crashes with SIGSEGV on kernel 5.15.0-1027:
