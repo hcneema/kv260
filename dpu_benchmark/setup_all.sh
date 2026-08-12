@@ -17,6 +17,14 @@ echo "========================================"
 echo "Running from: $SCRIPT_DIR"
 echo ""
 
+# === STEP 0: Disable auto-updates and lock XRT (MUST BE FIRST) ===
+echo "Disabling auto-updates..."
+sudo systemctl disable --now unattended-upgrades 2>/dev/null || true
+sudo apt-get remove -y unattended-upgrades 2>/dev/null || true
+sudo apt-mark hold xrt 2>/dev/null || true
+echo "Auto-updates: disabled, XRT: locked at $(dpkg -l xrt 2>/dev/null | awk '/^ii/{print $3}' || echo 'unknown')"
+echo ""
+
 # Fix CRLF line endings (scripts edited on Windows break bash)
 echo "Fixing line endings in shell scripts..."
 find "$SCRIPT_DIR" -name "*.sh" -exec sed -i "s/\r//" {} \;
@@ -159,7 +167,10 @@ echo "========================================"
 echo " Setup Complete!"
 echo "========================================"
 echo ""
-echo "Open Jupyter at: http://$(hostname -I | awk '{print $1}'):9090/lab"
+echo "IMPORTANT: Run 'sudo reboot' now to activate WiFi driver."
+echo "After reboot, unplug Ethernet — board will be at 192.168.68.60 via WiFi."
+echo ""
+echo "Open Jupyter at: http://$(hostname -I | awk '{print $1}'):9090/tree"
 echo "Password: xilinx"
 echo ""
 echo "Run notebooks in this order:"
@@ -194,3 +205,37 @@ PYEOF
 
 # Copy MNIST ONNX model
 cp "$SCRIPT_DIR/mnist/models/mnist-12.onnx" /home/ubuntu/ 2>/dev/null && echo "mnist-12.onnx copied" || true
+
+# === WiFi Driver (88x2bu for USB WiFi adapter) ===
+echo ""
+echo "Installing 88x2bu WiFi driver..."
+if lsmod | grep -q 88x2bu || find /lib/modules -name "88x2bu.ko" 2>/dev/null | grep -q .; then
+    echo "88x2bu: already installed"
+else
+    sudo apt-get install -y dkms git build-essential bc > /dev/null 2>&1
+    git clone https://github.com/morrownr/88x2bu-20210702.git /tmp/88x2bu-src 2>/dev/null || \
+        (cd /tmp/88x2bu-src && git pull)
+    cd /tmp/88x2bu-src
+    sudo ./install-driver.sh NoPrompt
+    cd "$SCRIPT_DIR"
+    echo "88x2bu: installed (active after reboot)"
+fi
+
+# === Configure WiFi static IP ===
+echo ""
+echo "Configuring WiFi static IP..."
+WIFI_CONN_SRC="$SCRIPT_DIR/shared/wifi.nmconnection"
+WIFI_CONN_DST="/etc/NetworkManager/system-connections"
+if [ -d "$WIFI_CONN_DST" ] && ls "$WIFI_CONN_DST"/*.nmconnection 2>/dev/null | grep -q .; then
+    echo "WiFi: connection already configured"
+elif [ -f "$WIFI_CONN_SRC" ]; then
+    CONN_NAME=$(grep "^id=" "$WIFI_CONN_SRC" | cut -d= -f2)
+    sudo cp "$WIFI_CONN_SRC" "$WIFI_CONN_DST/${CONN_NAME}.nmconnection"
+    sudo chmod 600 "$WIFI_CONN_DST/${CONN_NAME}.nmconnection"
+    sudo chown root:root "$WIFI_CONN_DST/${CONN_NAME}.nmconnection"
+    sudo nmcli connection reload 2>/dev/null || true
+    echo "WiFi: configured from shared/wifi.nmconnection (static IP 192.168.68.60)"
+else
+    echo "WARNING: shared/wifi.nmconnection not found — WiFi not configured"
+    echo "  Copy your NM connection file to shared/wifi.nmconnection and re-run"
+fi
