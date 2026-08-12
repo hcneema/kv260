@@ -335,7 +335,7 @@ sudo apt-get -o Acquire::ForceIPv4=true update
 |---|---|
 | Ubuntu | 22.04.4 LTS |
 | Kernel | 5.15.0-1027-xilinx-zynqmp |
-| XRT | 2.13.466-0ubuntu2 ← locked with apt-mark hold |
+| XRT | 2.13.479-0ubuntu2 ← locked with apt-mark hold |
 | PYNQ | 3.0.1 |
 | pynq-dpu | 2.5.1 |
 | ONNX Runtime | 1.23.2 |

@@ -487,7 +487,7 @@ on the same router — SSH works fine from PC to board.
 |---|---|
 | Ubuntu | 22.04.4 LTS |
 | Kernel | 5.15.0-1027-xilinx-zynqmp |
-| XRT | 2.13.466-0ubuntu2 |
+| XRT | 2.13.479-0ubuntu2 |
 | PYNQ | 3.0.1 |
 | pynq-dpu | 2.5.1 |
 | ONNX Runtime | 1.23.2 |
