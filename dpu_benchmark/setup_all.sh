@@ -92,6 +92,58 @@ else
     echo "WARNING: dpu.xclbin not found — DpuOverlay will fail. Reinstall Kria-PYNQ."
 fi
 
+# Apply pynq device tree overlay (zocl) — required for DpuOverlay to find the FPGA device
+# The Kria-PYNQ install.sh does this but fails silently if sudo isn't available during install.
+# Without it: lsmod shows zocl loaded but /dev/dri/renderD128 is missing → ENODEV on DpuOverlay().
+echo ""
+echo "Setting up pynq device tree overlay (zocl)..."
+PYNQ_DTS_DIR="/home/ubuntu/Kria-PYNQ/dts"
+DTBO_DEST="/usr/local/share/pynq-venv/pynq-dts"
+DTBO_FW="/lib/firmware/pynq.dtbo"
+if cat /sys/kernel/config/device-tree/overlays/pynq/status 2>/dev/null | grep -q applied; then
+    echo "pynq dtbo: already applied"
+else
+    if [ -f "$PYNQ_DTS_DIR/pynq.dts" ]; then
+        sudo dtc -I dts -O dtb -o /tmp/pynq.dtbo "$PYNQ_DTS_DIR/pynq.dts" 2>/dev/null
+        sudo mkdir -p "$DTBO_DEST"
+        sudo cp /tmp/pynq.dtbo "$DTBO_DEST/pynq.dtbo"
+        sudo cp "$PYNQ_DTS_DIR/insert_dtbo.py" "$DTBO_DEST/" 2>/dev/null || true
+        sudo cp /tmp/pynq.dtbo "$DTBO_FW"
+        sudo mkdir -p /sys/kernel/config/device-tree/overlays/pynq
+        echo -n pynq.dtbo | sudo tee /sys/kernel/config/device-tree/overlays/pynq/path > /dev/null
+        STATUS=$(cat /sys/kernel/config/device-tree/overlays/pynq/status 2>/dev/null)
+        echo "pynq dtbo: $STATUS"
+    else
+        echo "WARNING: $PYNQ_DTS_DIR/pynq.dts not found — is Kria-PYNQ cloned to /home/ubuntu/Kria-PYNQ?"
+    fi
+fi
+
+# Make zocl load on boot and pynq dtbo apply before Jupyter
+echo "zocl" | sudo tee /etc/modules-load.d/zocl.conf > /dev/null
+if [ ! -f /lib/systemd/system/pynq-dtbo.service ]; then
+    sudo bash -c 'cat > /lib/systemd/system/pynq-dtbo.service << '"'"'EOF'"'"'
+[Unit]
+Description=Apply PYNQ device tree overlay (zocl)
+Before=jupyter.service
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/bin/cp /usr/local/share/pynq-venv/pynq-dts/pynq.dtbo /lib/firmware/pynq.dtbo
+ExecStart=/bin/bash -c "mkdir -p /sys/kernel/config/device-tree/overlays/pynq && echo -n pynq.dtbo > /sys/kernel/config/device-tree/overlays/pynq/path"
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+    sudo systemctl daemon-reload
+    sudo systemctl enable pynq-dtbo.service
+    echo "pynq-dtbo: systemd service created and enabled (persists across reboots)"
+else
+    echo "pynq-dtbo: service already installed"
+fi
+echo ""
+
 # Install onnxruntime into pynq venv (not user-local — Jupyter won't see ~/.local)
 echo ""
 echo "Installing onnxruntime into pynq venv..."

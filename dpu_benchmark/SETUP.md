@@ -36,20 +36,22 @@ Download from: https://ubuntu.com/download/amd (scroll to bottom, KV260, Ubuntu 
 
 ---
 
-## Step 2 — First Boot & SSH (Headless)
+## Step 2 — First Boot & SSH
 
-The Ubuntu image includes cloud-init. The `system-boot` FAT32 partition has a `user-data` file.
-Check that it contains `ssh_pwauth: true` — if so, SSH works out of the box with `ubuntu`/`ubuntu`.
+**SSH is NOT enabled by default on the fresh image.** You must use a monitor + USB keyboard for the first boot.
 
 1. Insert microSD, connect Ethernet **directly to your router** (not to your PC — Windows ICS does not NAT TCP reliably)
-2. Power on, wait 3-5 minutes (first boot resizes filesystem)
-3. Find the IP from your router's DHCP client list (look for device named `kria`)
-4. SSH in: `ssh ubuntu@<board-ip>` — password: `ubuntu`, then set a new password
+2. Connect HDMI monitor and USB keyboard to the KV260
+3. Power on, wait 3-5 minutes (first boot resizes filesystem and shows a login prompt)
+4. Log in: `ubuntu` / `ubuntu` — it will immediately force you to set a new password
+5. Enable SSH so you can use it from your PC going forward:
+   ```bash
+   sudo systemctl enable ssh && sudo systemctl start ssh
+   ```
+6. Find the board IP from your router's DHCP client list (look for `kria`) or run `ip addr` on the board
+7. From your PC: `ssh ubuntu@<board-ip>` — use the new password you just set
 
-> If you need keyboard+monitor: login `ubuntu`/`ubuntu`, set new password, enable SSH:
-> ```bash
-> sudo systemctl enable ssh && sudo systemctl start ssh
-> ```
+> You only need the monitor/keyboard for this one step. After SSH is enabled you can work remotely.
 
 ---
 
@@ -261,6 +263,36 @@ cp /usr/local/share/pynq-venv/lib/python3.10/site-packages/pynq_dpu/dpu.xclbin \
 ---
 
 ## Critical Gotchas (learned the hard way)
+
+### "Programming Device failed: ENODEV" — zocl device tree overlay not applied
+
+`DpuOverlay("dpu.bit")` fails with `RuntimeError: Programming Device failed: ENODEV (19)` if the pynq device tree overlay was not applied on boot. This overlay adds the `zocl` device node that XRT needs to talk to the FPGA.
+
+**Root cause:** The Kria-PYNQ `install.sh` applies this overlay as part of setup, but the step requires `sudo`. If the install ran without proper sudo (e.g., via a non-interactive SSH pipe), this step silently fails.
+
+**Symptoms:**
+```bash
+lsmod | grep zocl       # zocl is loaded but...
+ls /dev/dri/            # ...renderD128 is missing (only card0)
+xbutil examine          # shows "0 devices found"
+```
+
+**Fix — run once, then it persists across reboots:**
+```bash
+# Compile and apply the device tree overlay
+cd /home/ubuntu/Kria-PYNQ/dts
+sudo dtc -I dts -O dtb -o /tmp/pynq.dtbo pynq.dts
+sudo cp /tmp/pynq.dtbo /lib/firmware/pynq.dtbo
+sudo mkdir -p /sys/kernel/config/device-tree/overlays/pynq
+echo -n pynq.dtbo | sudo tee /sys/kernel/config/device-tree/overlays/pynq/path
+# Verify:
+cat /sys/kernel/config/device-tree/overlays/pynq/status   # should say: applied
+ls /dev/dri/   # should now show renderD128
+```
+
+**Make it persist across reboots:**
+`setup_all.sh` now handles this automatically via a `pynq-dtbo` systemd service.
+If you set up manually, create `/lib/systemd/system/pynq-dtbo.service` and enable it.
 
 ### Disable unattended-upgrades immediately after setup
 Ubuntu's automatic updater runs in the background and can silently update the kernel, XRT, or Python packages — any of which can break DPU. Disable it right after Kria-PYNQ is confirmed working:
