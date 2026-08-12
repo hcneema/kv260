@@ -332,9 +332,25 @@ cat /proc/meminfo | grep Cma   # CmaFree must be >500MB
 If low — reboot before running any notebook.
 CmaFree drops to ~50MB right after Kria-PYNQ install — always reboot before first DPU run.
 
-### Always run DPU notebooks from Jupyter, not bare terminal
-Python 3.10 mmap differences cause silent infinite hang in bare terminal.
-Use `http://<board-ip>:9090/lab` always.
+### Running DPU inference from .py files (not just Jupyter)
+
+You do NOT need Jupyter. You can run `.py` files directly over SSH — confirmed working at 84+ FPS.
+Three requirements must all be met:
+
+```bash
+# On the board:
+source /etc/profile.d/pynq_venv.sh          # sets XILINX_XRT=/usr and BOARD=KV260
+sudo -E /usr/local/share/pynq-venv/bin/python3 your_script.py
+```
+
+- `source pynq_venv.sh` — sets `XILINX_XRT=/usr` without which XRT returns ENODEV
+- `sudo -E` — DRI device (`/dev/dri/renderD128`) requires root; `-E` preserves the env vars from the source
+- Full path to pynq venv python — system `python3` doesn't have pynq_dpu installed
+
+From your PC over SSH:
+```bash
+ssh ubuntu@192.168.68.60 "source /etc/profile.d/pynq_venv.sh && sudo -E /usr/local/share/pynq-venv/bin/python3 /home/ubuntu/dpu_benchmark/resnet50/run_bench.py"
+```
 
 ### Power sensor location
 ```bash
@@ -384,6 +400,23 @@ Or just delete `~/.ssh/known_hosts` if this is a dev machine and you don't care 
 If you see `sudo: command not found` or `sudo is disabled on this machine`, you ran the command in a
 Windows terminal (Git Bash, PowerShell, WSL) instead of an SSH session to the board.
 Always confirm you are on the board: `whoami` should show `ubuntu`, not your Windows username.
+
+### Kria-PYNQ install MUST run with interactive sudo, not piped password
+
+The install.sh has a step that applies the pynq device tree overlay (`pynq.dtbo`). This step requires a real interactive terminal with sudo — it silently skips when run via piped password (`echo pass | sudo -S`).
+
+**Wrong (device tree step is silently skipped):**
+```bash
+echo redroses21 | sudo -S bash install.sh -b KV260
+```
+
+**Right (use an interactive SSH session):**
+```bash
+ssh ubuntu@192.168.68.60   # interactive terminal
+sudo bash install.sh -b KV260
+```
+
+If you ran it the wrong way, `setup_all.sh` detects and fixes this automatically (creates the `pynq-dtbo` systemd service). The symptom is `ENODEV` when loading DpuOverlay — see the gotcha above.
 
 ### Kria-PYNQ install compiles packages from source — do not interrupt
 The install takes ~25 minutes on ARM. Several packages (pycurl, etc.) are compiled from C source code.
