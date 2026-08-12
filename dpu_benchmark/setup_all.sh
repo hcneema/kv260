@@ -34,12 +34,15 @@ echo ""
 # Check prerequisites
 echo "Checking prerequisites..."
 
-# Check pynq_dpu
+# Check pynq_dpu — must source pynq_venv.sh first (sets BOARD, XILINX_XRT, activates venv)
 source /etc/profile.d/pynq_venv.sh 2>/dev/null || true
-python3 -c "from pynq_dpu import DpuOverlay; print('pynq_dpu: OK')" 2>/dev/null || {
-    echo "ERROR: pynq_dpu not found."
-    echo "Install Kria-PYNQ first: sudo bash /home/ubuntu/Kria-PYNQ/install.sh -b KV260"
-    exit 1
+/usr/local/share/pynq-venv/bin/python3 -c "from pynq_dpu import DpuOverlay; print('pynq_dpu: OK')" 2>/dev/null || {
+    echo "pynq_dpu not found — installing now..."
+    sudo bash -c 'source /etc/profile.d/pynq_venv.sh && python3 -m pip install pynq-dpu==2.5 --no-build-isolation -q'
+    /usr/local/share/pynq-venv/bin/python3 -c "from pynq_dpu import DpuOverlay; print('pynq_dpu: OK')" 2>/dev/null || {
+        echo "ERROR: pynq_dpu install failed. Install Kria-PYNQ first: sudo bash /home/ubuntu/Kria-PYNQ/install.sh -b KV260"
+        exit 1
+    }
 }
 
 # Check power sensor
