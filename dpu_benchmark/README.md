@@ -52,7 +52,7 @@ The DPU uses ~2x more power than idle CPU, but delivers 14-217x more FPS — mak
 
 > *MNIST: models included, dataset downloaded by setup.sh (~12MB from Google)
 
-Shared: `shared/dpu.bit` (7MB) + `shared/dpu.hwh` (760KB) — same for all DPU models.
+Shared: `dpu.bit` + `dpu.hwh` are bundled inside the pynq-dpu package (not in this repo). `shared/dpu.xclbin` is in this repo — required by DpuOverlay alongside the bitstream.
 
 ---
 
@@ -60,20 +60,35 @@ Shared: `shared/dpu.bit` (7MB) + `shared/dpu.hwh` (760KB) — same for all DPU m
 
 > **See `SETUP.md` for the full step-by-step board setup guide** including all the gotchas we hit during our 7+ hour first-time setup.
 
-```bash
-# 1. Install Kria-PYNQ (see SETUP.md — takes ~45 min)
+Key things that aren't obvious:
+- **SSH is not enabled by default** — requires monitor + keyboard on first boot to run `sudo systemctl enable ssh && sudo systemctl start ssh`
+- **Lock XRT immediately** — `sudo apt-mark hold xrt` before any apt operations. Upgrading XRT breaks the DPU and requires a full SD card reflash
+- **Kria-PYNQ install must use interactive sudo** — run `sudo bash install.sh -b KV260` from an interactive SSH session, not via piped password
 
-# 2. Copy this entire dpu_benchmark/ folder to the board
+```bash
+# 1. Flash SD card, enable SSH via monitor (see SETUP.md Steps 1-3)
+
+# 2. Lock XRT before anything else
+sudo apt-mark hold xrt
+
+# 3. Install Kria-PYNQ (interactive SSH session — see SETUP.md Step 5, ~25 min)
+git clone https://github.com/hcneema/Kria-PYNQ /home/ubuntu/Kria-PYNQ
+cd /home/ubuntu/Kria-PYNQ && sudo bash install.sh -b KV260
+
+# 4. Copy this entire dpu_benchmark/ folder to the board
 scp -r dpu_benchmark/ ubuntu@<board-ip>:/home/ubuntu/
 
-# 3. SSH into board and run setup
+# 5. SSH into board and run setup (handles everything else automatically)
 ssh ubuntu@<board-ip>
 cd /home/ubuntu/dpu_benchmark
 bash setup_all.sh
 
-# 4. Open Jupyter at http://<board-ip>:9090/lab  password: xilinx
+# 6. Open Jupyter at http://<board-ip>:9090/lab  password: xilinx
+#    Or run directly from SSH (no Jupyter needed):
+#    source /etc/profile.d/pynq_venv.sh
+#    sudo -E /usr/local/share/pynq-venv/bin/python3 resnet50/dpu_bench.py
 
-# 5. Run notebooks in order:
+# 7. Run notebooks in order:
 #    resnet50/dpu_bench.ipynb    -> DPU (~92 FPS expected)
 #    resnet50/cpu_bench.ipynb    -> CPU (~1.6 FPS expected)
 #    yolov3/dpu_bench.ipynb      -> DPU (~14.7 FPS expected)
