@@ -67,6 +67,11 @@
 
 Idle power: 29.14 W. Rounds 3 and 8 show Colab scheduler preemption (same pattern as ResNet50 run).
 
+**Key findings (with model-mismatch caveat):**
+- KV260 DPU FPS/W_delta (64.73) vs T4 GPU (2.34) = **27.7x** — overstated due to model mismatch (InceptionV3 is ~4x harder than InceptionV1); true same-model advantage would be lower but remains large given sub-linear GPU scaling at batch=1
+- T4 active power (62.63 W) is **7.7x the KV260's entire active power** for the Inception workload
+- High FPS variance on T4 (±10.86) vs near-zero on KV260 DPU (±0.33) — scheduler preemption on shared cloud GPU
+
 ---
 
 ## Three-Way Comparison: YOLOv3 / Object Detection (batch=1)
