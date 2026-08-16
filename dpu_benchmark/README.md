@@ -5,16 +5,18 @@
 
 ## Summary — Confirmed Results (measured 2026-08-12, 10 rounds each)
 
-**Key finding: FPGA/DPU is 18–21x more energy efficient than ARM CPU across all CNN workloads**
+**Key findings: (1) FPGA/DPU is 18–21x more energy efficient than ARM CPU across all CNN workloads; (2) FPGA/DPU is ~8x more energy efficient than server GPU (Tesla T4) at batch=1 inference (ResNet50, direct comparison)**
 
-| Task | CPU FPS | DPU FPS | Speedup | CPU FPS/W† | DPU FPS/W† | Efficiency gain |
-|---|---|---|---|---|---|---|
-| ResNet50 (classification) | 1.58±0.04 | 84.38±0.05 | **53.4x** | 1.33±0.03 | 28.65±0.79 | **21.5x** |
-| InceptionV1 (classification) | 3.86±0.01 | 165.75±0.33 | **42.9x** | 3.35±0.04 | 64.73±3.84 | **19.3x** |
-| YOLOv3 (object detection) | 0.22±0.00 | 13.23±0.02 | **60.1x** | 0.17±0.01 | 3.09±0.10 | **18.2x** |
-| MNIST (digit classification) | 2415±18 | 3642±34 | **1.5x** | — | — | — |
+| Task | CPU FPS | DPU FPS | GPU FPS | Speedup | CPU FPS/W† | DPU FPS/W† | GPU FPS/W† | DPU/CPU eff | DPU/GPU eff |
+|---|---|---|---|---|---|---|---|---|---|
+| ResNet50 (classification) | 1.58±0.04 | 84.38±0.05 | 119.67±17.94 | **53.4x** | 1.33±0.03 | 28.65±0.79 | 3.51±0.42 | **21.5x** | **8.2x** |
+| InceptionV1 (classification) | 3.86±0.01 | 165.75±0.33 | 78.40±10.86‡ | **42.9x** | 3.35±0.04 | 64.73±3.84 | 2.34±0.24‡ | **19.3x** | 27.7x‡ |
+| YOLOv3 (object detection) | 0.22±0.00 | 13.23±0.02 | 15.40±0.37‡ | **60.1x** | 0.17±0.01 | 3.09±0.10 | 0.37±0.01‡ | **18.2x** | 8.4x‡ |
+| MNIST (digit classification) | 2415±18 | 3642±34 | — | **1.5x** | — | — | — | — | — |
 
 > †FPS/W_delta = FPS ÷ (active power − idle power), removing fixed OS overhead (~4.83 W idle on KV260, ~26.7 W idle on T4). This is the primary efficiency metric — see RESULTS.md for full detail.
+>
+> ‡ GPU model mismatch: Inception GPU used InceptionV3 (299×299, 24M params) vs KV260 InceptionV1 (224×224, 6M params); YOLOv3 GPU used YOLOv3u (640×640, 103M params) vs KV260 YOLOv3 (416×416, ~62M params). GPU results are conservative lower-bound estimates — see three-way comparison sections below.
 >
 > MNIST note: Both CPU and DPU complete in <0.5ms/frame. DPU advantage is small for tiny models — the DPU shines on larger CNNs.
 
