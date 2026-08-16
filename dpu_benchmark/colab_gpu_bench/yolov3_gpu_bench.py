@@ -4,10 +4,11 @@ YOLOv3 GPU Benchmark — Google Colab T4
 Measures FPS, latency, and GPU power for comparison with KV260 DPU/CPU results.
 
 Mismatches vs KV260 (documented caveats):
-  - Framework: PyTorch (Ultralytics) vs ONNX Runtime (CPU) / pynq-dpu (DPU)
+  - Model variant: Ultralytics auto-upgrades yolov3.pt → yolov3u.pt (103M params vs ~62M).
+    Standard YOLOv3 on T4 would be faster — this is a conservative (lower-bound) GPU estimate.
+  - Framework: PyTorch FP32 (T4) vs ONNX Runtime FP32 (CPU) / pynq-dpu INT8 (DPU)
   - Input size: 640×640 (Ultralytics native) vs 416×416 (KV260)
-  - Training data: COCO (Ultralytics yolov3.pt) vs VOC (KV260 DPU xmodel)
-  - Precision: FP32 (GPU) vs FP32 (CPU) vs INT8 (DPU)
+  - Training data: COCO (T4) vs VOC (KV260 DPU xmodel)
 Each platform runs at its natural operating point.
 
 Paste into a Colab cell or run as a script.

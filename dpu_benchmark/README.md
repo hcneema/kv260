@@ -37,7 +37,6 @@
 - KV260 DPU FPS variance: ±0.05 FPS. T4 GPU: ±17.94 FPS (Colab shared GPU scheduler) — **360x more stable**
 - T4 GPU is a datacenter card optimised for large batches; at batch=1 it burns 61 W to be 1.4x faster than an 8 W edge board
 
-> GPU benchmark for YOLOv3 in progress — see `colab_gpu_bench/`.
 
 ---
 
@@ -67,6 +66,44 @@
 | 10 | 85.3 | 11.71 | 16.90 | 61.32 | 32.19 | 2.65 |
 
 Idle power: 29.14 W. Rounds 3 and 8 show Colab scheduler preemption (same pattern as ResNet50 run).
+
+---
+
+## Three-Way Comparison: YOLOv3 / Object Detection (batch=1)
+
+> ⚠️ **Model mismatches** (all documented — T4 result is a conservative lower-bound GPU estimate):
+> - Ultralytics auto-upgraded `yolov3.pt` → `yolov3u.pt` (103M params vs standard YOLOv3 ~62M). Standard YOLOv3 on T4 would be faster and more efficient.
+> - Input: 640×640 (T4 native) vs 416×416 (KV260)
+> - Framework: PyTorch FP32 (T4) vs ONNX Runtime FP32 (CPU) vs pynq-dpu INT8 (DPU)
+> - Training data: COCO (T4) vs VOC (KV260 DPU)
+
+| Platform | Model | FPS | Active Power | Delta Power | FPS/W_delta |
+|---|---|---|---|---|---|
+| T4 GPU (Colab) | YOLOv3u, 640×640, COCO | 15.40 ± 0.37 | 67.54 W | 41.57 W | 0.37 ± 0.01 |
+| **KV260 DPU** | **YOLOv3, 416×416, VOC, INT8** | **13.23 ± 0.02** | **—** | **—** | **3.09 ± 0.10** |
+| KV260 CPU | YOLOv3, 416×416, COCO, FP32 | 0.22 ± 0.00 | — | — | 0.17 ± 0.01 |
+
+**Key findings:**
+- KV260 DPU is **8.4x more energy efficient** than T4 GPU — consistent with ResNet50 result (8.2x)
+- T4 running a larger model at higher resolution is only **1.16x faster** in raw FPS
+- T4 run was very stable (±0.37 FPS) — YOLOv3u is compute-heavy enough to fully saturate the GPU, eliminating scheduler preemption seen in lighter models
+
+**Per-round T4 results (YOLOv3u, 640×640):**
+
+| Rnd | FPS | Lat mean | Lat p95 | Active W | Delta W | FPS/W_d |
+|---|---|---|---|---|---|---|
+| 1 | 16.0 | 62.51 | 63.66 | 69.37 | 43.39 | 0.37 |
+| 2 | 15.8 | 63.08 | 64.01 | 67.64 | 41.67 | 0.38 |
+| 3 | 15.7 | 63.63 | 64.48 | 67.15 | 41.18 | 0.38 |
+| 4 | 15.6 | 64.09 | 65.04 | 67.56 | 41.58 | 0.37 |
+| 5 | 15.5 | 64.51 | 65.58 | 68.80 | 42.82 | 0.36 |
+| 6 | 15.4 | 65.04 | 65.84 | 67.13 | 41.16 | 0.37 |
+| 7 | 15.2 | 65.68 | 66.77 | 66.98 | 41.00 | 0.37 |
+| 8 | 15.1 | 66.13 | 66.99 | 66.90 | 40.93 | 0.37 |
+| 9 | 14.9 | 66.93 | 68.00 | 67.36 | 41.39 | 0.36 |
+| 10 | 14.8 | 67.43 | 68.44 | 66.52 | 40.54 | 0.37 |
+
+Idle power: 25.97 W.
 
 ---
 
