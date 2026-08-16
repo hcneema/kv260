@@ -14,9 +14,30 @@
 | YOLOv3 (object detection) | 0.22±0.00 | 13.23±0.02 | **60.1x** | 0.17±0.01 | 3.09±0.10 | **18.2x** |
 | MNIST (digit classification) | 2415±18 | 3642±34 | **1.5x** | — | — | — |
 
-> †FPS/W_delta = FPS ÷ (active power − idle power), removing fixed OS overhead (~4.83 W). This is the primary efficiency metric — see RESULTS.md for full detail.
+> †FPS/W_delta = FPS ÷ (active power − idle power), removing fixed OS overhead (~4.83 W idle on KV260, ~26.7 W idle on T4). This is the primary efficiency metric — see RESULTS.md for full detail.
 >
 > MNIST note: Both CPU and DPU complete in <0.5ms/frame. DPU advantage is small for tiny models — the DPU shines on larger CNNs.
+
+---
+
+## Three-Way Comparison: KV260 DPU vs ARM CPU vs T4 GPU (ResNet50, batch=1)
+
+> GPU results measured on Google Colab Tesla T4, 10 rounds × 100 frames, 2026-08-16.
+> See `colab_gpu_bench/` for scripts and raw results.
+
+| Platform | FPS | Active Power | Delta Power | FPS/W_delta | vs DPU efficiency |
+|---|---|---|---|---|---|
+| T4 GPU (Colab) | 119.67 ± 17.94 | 60.76 W | 34.07 W | 3.51 ± 0.42 | 0.12x |
+| **KV260 DPU** | **84.38 ± 0.05** | **8.16 W** | **3.33 W** | **28.65 ± 0.79** | **1.0x (baseline)** |
+| KV260 CPU | 1.58 ± 0.04 | 6.01 W | 1.18 W | 1.33 ± 0.03 | 0.05x |
+
+**Key findings (batch=1 inference):**
+- KV260 DPU is **8.2x more energy efficient** than T4 GPU, while being only 1.4x slower in raw FPS
+- T4 GPU idle power alone (26.7 W) is **3.3x the KV260's entire active power** (8.16 W)
+- KV260 DPU FPS variance: ±0.05 FPS. T4 GPU: ±17.94 FPS (Colab shared GPU scheduler) — **360x more stable**
+- T4 GPU is a datacenter card optimised for large batches; at batch=1 it burns 61 W to be 1.4x faster than an 8 W edge board
+
+> GPU benchmarks for InceptionV1 and YOLOv3 in progress — see `colab_gpu_bench/`.
 
 ---
 
@@ -106,6 +127,7 @@ nohup sudo bash -c 'source /etc/profile.d/pynq_venv.sh && \
 | `RESULTS_extra.md` | Full 10-round data for MNIST DPU + CPU |
 | `raw_latencies/` | Per-frame latency CSVs for all runs |
 | `raw_power/` | Timestamped power waveform CSVs for all DPU runs |
+| `colab_gpu_bench/` | T4 GPU benchmark scripts and raw results (one script + results file per model) |
 
 ---
 
