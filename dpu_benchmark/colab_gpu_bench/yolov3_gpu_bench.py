@@ -14,9 +14,11 @@ Paste into a Colab cell or run as a script.
 Runtime → Change runtime type → T4 GPU before running.
 """
 
+import subprocess
+subprocess.run(['pip', 'install', 'ultralytics', '-q'], check=True)
+
 import time
 import threading
-import subprocess
 import numpy as np
 import torch
 from ultralytics import YOLO
