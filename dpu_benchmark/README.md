@@ -37,7 +37,36 @@
 - KV260 DPU FPS variance: ±0.05 FPS. T4 GPU: ±17.94 FPS (Colab shared GPU scheduler) — **360x more stable**
 - T4 GPU is a datacenter card optimised for large batches; at batch=1 it burns 61 W to be 1.4x faster than an 8 W edge board
 
-> GPU benchmarks for InceptionV1 and YOLOv3 in progress — see `colab_gpu_bench/`.
+> GPU benchmark for YOLOv3 in progress — see `colab_gpu_bench/`.
+
+---
+
+## Three-Way Comparison: Inception Family (batch=1)
+
+> ⚠️ **Model mismatch**: T4 runs InceptionV3 (Keras, 24M params, 299×299); KV260 runs InceptionV1 (6M params, 224×224). InceptionV1 is not available in `tf.keras.applications`. FPS numbers are **not directly comparable** — InceptionV3 is ~4x more compute-intensive. FPS/W_delta is indicative: InceptionV1 on T4 would likely show higher FPS/W_delta, but GPU scaling at batch=1 is sub-linear so the DPU efficiency gap would remain large.
+
+| Platform | Model | FPS | Active Power | Delta Power | FPS/W_delta |
+|---|---|---|---|---|---|
+| T4 GPU (Colab) | InceptionV3 | 78.40 ± 10.86 | 62.63 W | 33.50 W | 2.34 ± 0.24 |
+| **KV260 DPU** | **InceptionV1** | **165.75 ± 0.33** | **—** | **—** | **64.73 ± 3.84** |
+| KV260 CPU | InceptionV1 | 3.86 ± 0.01 | — | — | 3.35 ± 0.04 |
+
+**Per-round T4 results (InceptionV3):**
+
+| Rnd | FPS | Lat mean | Lat p95 | Active W | Delta W | FPS/W_d |
+|---|---|---|---|---|---|---|
+| 1 | 86.2 | 11.59 | 16.10 | 63.53 | 34.39 | 2.51 |
+| 2 | 85.1 | 11.75 | 16.22 | 64.27 | 35.13 | 2.42 |
+| 3 | 62.7 | 15.95 | 26.19 | 60.11 | 30.98 | 2.02 |
+| 4 | 82.7 | 12.08 | 16.86 | 65.14 | 36.00 | 2.30 |
+| 5 | 88.1 | 11.34 | 15.75 | 62.42 | 33.29 | 2.65 |
+| 6 | 82.6 | 12.10 | 17.34 | 67.58 | 38.44 | 2.15 |
+| 7 | 73.2 | 13.66 | 20.39 | 59.58 | 30.45 | 2.40 |
+| 8 | 54.1 | 18.47 | 27.02 | 57.80 | 28.66 | 1.89 |
+| 9 | 83.9 | 11.91 | 17.16 | 64.58 | 35.45 | 2.37 |
+| 10 | 85.3 | 11.71 | 16.90 | 61.32 | 32.19 | 2.65 |
+
+Idle power: 29.14 W. Rounds 3 and 8 show Colab scheduler preemption (same pattern as ResNet50 run).
 
 ---
 
