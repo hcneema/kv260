@@ -14,6 +14,7 @@ import numpy as np
 import tensorflow as tf
 
 # ── Config (match KV260 benchmark settings) ───────────────────────────────────
+N_ROUNDS   = 10
 N_WARMUP   = 10
 N_FRAMES   = 100
 IDLE_SECS  = 10       # seconds to sample idle power before warmup
@@ -47,7 +48,6 @@ def get_gpu_info():
 
 # ── Power sampling ────────────────────────────────────────────────────────────
 def read_gpu_power_w():
-    """Read current GPU power draw in watts via nvidia-smi."""
     try:
         result = subprocess.run(
             ['nvidia-smi', '--query-gpu=power.draw', '--format=csv,noheader,nounits'],
@@ -57,7 +57,6 @@ def read_gpu_power_w():
         return 0.0
 
 class PowerSampler:
-    """Background thread that samples GPU power every POWER_INTERVAL seconds."""
     def __init__(self):
         self.samples = []
         self._stop = threading.Event()
@@ -66,6 +65,7 @@ class PowerSampler:
     def start(self):
         self.samples = []
         self._stop.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
     def stop(self):
@@ -93,16 +93,14 @@ model = tf.keras.applications.ResNet50(
 )
 print(f"Model loaded. Parameters: {model.count_params():,}")
 
-# Dummy input — match KV260 benchmark (random float32, batch=1)
 dummy_input = np.random.rand(1, 224, 224, 3).astype(np.float32)
-dummy_input_tf = tf.constant(dummy_input)  # keep on GPU side
+dummy_input_tf = tf.constant(dummy_input)
 
-# Compiled inference function — forces GPU graph execution
 @tf.function
 def run_inference(x):
     return model(x, training=False)
 
-# ── Measure idle power ────────────────────────────────────────────────────────
+# ── Measure idle power (once) ─────────────────────────────────────────────────
 print(f"\nMeasuring idle GPU power ({IDLE_SECS}s)...")
 idle_sampler = PowerSampler()
 idle_sampler.start()
@@ -111,77 +109,97 @@ idle_sampler.stop()
 idle_w = idle_sampler.mean_w()
 print(f"  Idle power: {idle_w:.2f} W")
 
-# ── Warmup ────────────────────────────────────────────────────────────────────
+# ── Warmup (once) ─────────────────────────────────────────────────────────────
 print(f"\nWarmup ({N_WARMUP} frames)...")
 with tf.device('/GPU:0'):
     for _ in range(N_WARMUP):
         _ = run_inference(dummy_input_tf)
 print("Warmup done.")
 
-# ── Benchmark ─────────────────────────────────────────────────────────────────
-print(f"\nBenchmarking ({N_FRAMES} frames)...")
-sampler = PowerSampler()
-sampler.start()
+# ── 10-round benchmark ────────────────────────────────────────────────────────
+round_fps     = []
+round_lat_mean = []
+round_lat_p95  = []
+round_lat_p99  = []
+round_power    = []
+round_delta    = []
+round_fps_w    = []
 
-latencies_ms = []
-t_total_start = time.perf_counter()
-with tf.device('/GPU:0'):
-    for _ in range(N_FRAMES):
-        t0 = time.perf_counter()
-        _ = run_inference(dummy_input_tf)
-        latencies_ms.append((time.perf_counter() - t0) * 1000)
-t_total = time.perf_counter() - t_total_start
+print(f"\n{'Rnd':>4}  {'FPS':>7}  {'Lat_mean':>9}  {'Lat_p95':>8}  {'ActiveW':>8}  {'DeltaW':>7}  {'FPS/W_d':>8}")
+print("-" * 68)
 
-sampler.stop()
+for rnd in range(1, N_ROUNDS + 1):
+    sampler = PowerSampler()
+    sampler.start()
 
-# ── Compute stats ─────────────────────────────────────────────────────────────
-fps          = N_FRAMES / t_total
-lat_mean     = float(np.mean(latencies_ms))
-lat_std      = float(np.std(latencies_ms))
-lat_min      = float(np.min(latencies_ms))
-lat_max      = float(np.max(latencies_ms))
-lat_p95      = float(np.percentile(latencies_ms, 95))
-lat_p99      = float(np.percentile(latencies_ms, 99))
-power_avg    = sampler.mean_w()
-power_std    = sampler.std_w()
-delta_w      = max(power_avg - idle_w, 0.0)
-fps_w_total  = fps / power_avg  if power_avg  > 0 else 0.0
-fps_w_delta  = fps / delta_w    if delta_w    > 0 else float('inf')
-mj_frame     = (power_avg / fps) * 1000 if fps > 0 else 0.0
-mj_delta     = (delta_w   / fps) * 1000 if fps > 0 else 0.0
+    latencies_ms = []
+    t_total_start = time.perf_counter()
+    with tf.device('/GPU:0'):
+        for _ in range(N_FRAMES):
+            t0 = time.perf_counter()
+            _ = run_inference(dummy_input_tf)
+            latencies_ms.append((time.perf_counter() - t0) * 1000)
+    t_total = time.perf_counter() - t_total_start
 
-# ── GPU info ──────────────────────────────────────────────────────────────────
+    sampler.stop()
+
+    fps      = N_FRAMES / t_total
+    lat_mean = float(np.mean(latencies_ms))
+    lat_p95  = float(np.percentile(latencies_ms, 95))
+    lat_p99  = float(np.percentile(latencies_ms, 99))
+    pwr_avg  = sampler.mean_w()
+    delta_w  = max(pwr_avg - idle_w, 0.0)
+    fps_w    = fps / delta_w if delta_w > 0 else float('inf')
+
+    round_fps.append(fps)
+    round_lat_mean.append(lat_mean)
+    round_lat_p95.append(lat_p95)
+    round_lat_p99.append(lat_p99)
+    round_power.append(pwr_avg)
+    round_delta.append(delta_w)
+    round_fps_w.append(fps_w)
+
+    print(f"{rnd:>4}  {fps:>7.1f}  {lat_mean:>9.2f}  {lat_p95:>8.2f}  {pwr_avg:>8.2f}  {delta_w:>7.2f}  {fps_w:>8.2f}")
+
+# ── Aggregate stats ───────────────────────────────────────────────────────────
+fps_mean      = float(np.mean(round_fps))
+fps_std       = float(np.std(round_fps))
+lat_mean_agg  = float(np.mean(round_lat_mean))
+lat_p95_agg   = float(np.mean(round_lat_p95))
+lat_p99_agg   = float(np.mean(round_lat_p99))
+power_mean    = float(np.mean(round_power))
+power_std     = float(np.std(round_power))
+delta_mean    = float(np.mean(round_delta))
+fps_w_mean    = float(np.mean(round_fps_w))
+fps_w_std     = float(np.std(round_fps_w))
+mj_frame      = (power_mean / fps_mean) * 1000 if fps_mean > 0 else 0.0
+mj_delta      = (delta_mean / fps_mean) * 1000 if fps_mean > 0 else 0.0
+
 gpu_name, gpu_mem_mb, driver = get_gpu_info()
 
-# ── Print results ─────────────────────────────────────────────────────────────
 print(f"""
 ============================================================
-RESNET50 GPU BENCHMARK RESULTS
+RESNET50 GPU BENCHMARK RESULTS ({N_ROUNDS} rounds × {N_FRAMES} frames)
 ============================================================
 Platform:       Google Colab — {gpu_name}
 GPU memory:     {gpu_mem_mb} MB
 Driver:         {driver}
 TensorFlow:     {tf.__version__}
 Model:          ResNet50 (Keras, ImageNet weights, 1000 classes)
-Frames:         {N_FRAMES}
 ------------------------------------------------------------
-FPS:            {fps:.1f}
-Latency mean:   {lat_mean:.2f} ms
-Latency std:    {lat_std:.2f} ms
-Latency min:    {lat_min:.2f} ms
-Latency max:    {lat_max:.2f} ms
-Latency p95:    {lat_p95:.2f} ms
-Latency p99:    {lat_p99:.2f} ms
+FPS:            {fps_mean:.2f} ± {fps_std:.2f}
+Latency mean:   {lat_mean_agg:.2f} ms
+Latency p95:    {lat_p95_agg:.2f} ms
+Latency p99:    {lat_p99_agg:.2f} ms
 ------------------------------------------------------------
 Idle power:     {idle_w:.2f} W
-Active power:   {power_avg:.2f} ± {power_std:.2f} W
-Delta power:    {delta_w:.2f} W  (active − idle)
-FPS/W (total):  {fps_w_total:.2f}
-FPS/W (delta):  {fps_w_delta:.2f}   ← primary efficiency metric
+Active power:   {power_mean:.2f} ± {power_std:.2f} W
+Delta power:    {delta_mean:.2f} W  (active − idle)
+FPS/W (delta):  {fps_w_mean:.2f} ± {fps_w_std:.2f}   ← primary efficiency metric
 mJ/frame:       {mj_frame:.2f}
 mJ/frame delta: {mj_delta:.2f}
 ------------------------------------------------------------
-KV260 DPU ref:  84.4 FPS | 8.16W active | 28.65 FPS/W_delta
-KV260 CPU ref:   1.6 FPS | 6.01W active |  1.33 FPS/W_delta
+KV260 DPU ref:  84.38 ± 0.05 FPS | 8.16W active | 28.65 ± 0.79 FPS/W_delta
+KV260 CPU ref:   1.58 ± 0.04 FPS | 6.01W active |  1.33 ± 0.03 FPS/W_delta
 ============================================================
 """)
