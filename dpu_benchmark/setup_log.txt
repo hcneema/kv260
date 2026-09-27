@@ -1,0 +1,20 @@
+========================================
+ KV260 DPU Benchmark Suite — Setup
+========================================
+Running from: /home/ubuntu/dpu_benchmark
+
+Disabling auto-updates...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Package 'unattended-upgrades' is not installed, so not removed
+0 upgraded, 0 newly installed, 0 to remove and 562 not upgraded.
+xrt was already set on hold.
+Auto-updates: disabled, XRT: locked at 
+
+Fixing line endings in shell scripts...
+Done.
+
+Checking prerequisites...
+ERROR: pynq_dpu not found.
+Install Kria-PYNQ first: sudo bash /home/ubuntu/Kria-PYNQ/install.sh -b KV260

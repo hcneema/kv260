@@ -1,0 +1,134 @@
+========================================
+ KV260 DPU Benchmark Suite — Setup
+========================================
+Running from: /home/ubuntu/dpu_benchmark
+
+Disabling auto-updates...
+xrt was already set on hold.
+Auto-updates: disabled, XRT: locked at 
+
+Fixing line endings in shell scripts...
+Done.
+
+Checking prerequisites...
+pynq_dpu: OK
+Power sensor: OK (3.52 W)
+CmaFree: OK (1003340 kB)
+xmodel OK (local): dpu_resnet50.xmodel
+xmodel OK (local): tf_yolov3_voc.xmodel
+xmodel OK (local): dpu_tf_inceptionv1.xmodel
+dpu.xclbin: OK (local)
+
+Installing onnxruntime into pynq venv...
+onnxruntime: 1.23.2
+
+Fixing Jupyter kernel.json...
+kernel.json: fixed and Jupyter restarted
+
+Creating Jupyter symlink...
+Symlink created: /root/jupyter_notebooks/dpu_benchmark -> /home/ubuntu/dpu_benchmark
+
+Copying CPU benchmark models to /home/ubuntu/...
+Copying resnet50-v1-7.onnx (98M)...
+Done!
+Copying yolov3-10.onnx (237M)...
+Done!
+Copying inception-v1-9.onnx (27M)...
+Done!
+
+========================================
+ Setup Complete!
+========================================
+
+IMPORTANT: Run 'sudo reboot' now to activate WiFi driver.
+After reboot, unplug Ethernet — board will be at 192.168.68.60 via WiFi.
+
+Open Jupyter at: http://192.168.68.55:9090/tree
+Password: xilinx
+
+Run notebooks in this order:
+  1. resnet50/dpu_bench.ipynb     DPU ~96 FPS,   11.84 FPS/W
+  2. resnet50/cpu_bench.ipynb     CPU ~1.6 FPS,   0.37 FPS/W  -> 32x advantage
+  3. yolov3/dpu_bench.ipynb       DPU ~14.7 FPS,  1.51 FPS/W
+  4. yolov3/cpu_bench.ipynb       CPU ~0.22 FPS,  0.03 FPS/W  -> 50x advantage (slow!)
+  5. inceptionv1/dpu_bench.ipynb  DPU ~217 FPS,  27.44 FPS/W
+  6. inceptionv1/cpu_bench.ipynb  CPU ~3.86 FPS,  0.92 FPS/W  -> 30x advantage
+
+Before each DPU notebook, check CMA:
+  cat /proc/meminfo | grep CmaFree   # must be >500000 kB
+  If low: sudo reboot, wait 60s, re-open Jupyter
+
+Downloading MNIST dataset (from Google mirror)...
+  Downloading train-images-idx3-ubyte.gz...
+  Downloading train-labels-idx1-ubyte.gz...
+  Downloading t10k-images-idx3-ubyte.gz...
+  Downloading t10k-labels-idx1-ubyte.gz...
+mnist-12.onnx copied
+
+Installing 88x2bu WiFi driver...
+: ---------------------------
+: install-driver.sh v20241003
+: aarch64 (kernel architecture)
+: arm64 (architecture to send to gcc)
+: 4/4 (in-use/total processing units)
+: 4005128 (total system memory)
+: 5.15.0-1027-xilinx-zynqmp (kernel version)
+: gcc (version of gcc used to compile the kernel)
+: gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+: dkms-2.8.7
+: mokutil not installed (Secure Boot status unknown)
+: ---------------------------
+
+Checking for previously installed drivers...
+Finished checking for and uninstalling previously installed drivers.
+: ---------------------------
+
+Starting installation.
+Copying 88x2bu.conf to /etc/modprobe.d
+The dkms installation routines are in use.
+Copying source files to /usr/src/rtl88x2bu-5.13.1
+Creating symlink /var/lib/dkms/rtl88x2bu/5.13.1/source -> /usr/src/rtl88x2bu-5.13.1
+The driver was added to dkms successfully.
+: ---------------------------
+
+
+Kernel preparation unnecessary for this kernel. Skipping...
+
+Building module:
+cleaning build area...
+kernelver=5.15.0-1027-xilinx-zynqmp ./dkms-make.sh.................................................................................................
+cleaning build area...
+Compile time: 986.29 seconds
+The driver was built by dkms successfully.
+: ---------------------------
+
+88x2bu.ko:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/5.15.0-1027-xilinx-zynqmp/updates/dkms/
+
+depmod.............
+The driver was installed by dkms successfully.
+: ---------------------------
+
+Info: Update this driver with the following commands as needed:
+
+$ git pull
+$ sudo sh install-driver.sh
+
+Note: Updates to this driver SHOULD be performed before distro
+      upgrades such as Ubuntu 23.10 to 24.04.
+Note: Updates to this driver SHOULD be performed before major
+      upgrades such as kernel 6.5 to 6.6.
+Note: Updates can be performed as often as you like. It is
+      recommended to update at least every 3 months.
+Note: Work on this driver, like the Linux kernel, is continuous.
+
+Enjoy!
+
+88x2bu: installed (active after reboot)
+
+Configuring WiFi static IP...
+WiFi: configured from shared/wifi.nmconnection (static IP 192.168.68.60)
