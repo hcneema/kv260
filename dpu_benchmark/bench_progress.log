@@ -1,0 +1,214 @@
+
+KV260 Benchmark — rounds 1–2, 100 frames each
+Results → /home/ubuntu/dpu_benchmark/RESULTS.md
+Started: 2026-08-12 06:13:19
+
+[0;93m2026-08-12 06:13:25.425440367 [W:onnxruntime:Default, device_discovery.cc:164 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:89 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+Loading DPU overlay...
+DPU overlay loaded.
+
+============================================================
+ROUND 1 of 2  [06:13:32]
+============================================================
+CmaFree: 997108 kB ✓
+
+[RESNET50 DPU]  round 1
+  Loading xmodel: /home/ubuntu/dpu_benchmark/resnet50/models/dpu_resnet50.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 84.35  Lat: 11.9±0.3ms  Power: 7.82W  FPS/W: 10.791  mJ/frame: 92.671
+
+[RESNET50 CPU]  round 1
+[0;93m2026-08-12 06:13:34.252681119 [W:onnxruntime:Default, device_discovery.cc:164 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:89 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+  Loading ONNX: /home/ubuntu/dpu_benchmark/resnet50/models/resnet50-v1-7.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 1.59  Lat: 630.9±5.3ms  Power: 5.99W  FPS/W: 0.265  mJ/frame: 3777.540
+
+[INCEPTIONV1 DPU]  round 1
+  Loading xmodel: /home/ubuntu/dpu_benchmark/inceptionv1/models/dpu_tf_inceptionv1.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 165.77  Lat: 6.0±0.1ms  Power: 7.45W  FPS/W: 22.251  mJ/frame: 44.942
+
+[INCEPTIONV1 CPU]  round 1
+  Loading ONNX: /home/ubuntu/dpu_benchmark/inceptionv1/models/inception-v1-9.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 3.53  Lat: 283.1±91.4ms  Power: 5.95W  FPS/W: 0.594  mJ/frame: 1684.087
+
+[YOLOV3 DPU]  round 1
+  Loading xmodel: /home/ubuntu/dpu_benchmark/yolov3/models/tf_yolov3_voc.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 13.23  Lat: 75.6±0.1ms  Power: 8.96W  FPS/W: 1.477  mJ/frame: 677.133
+
+[YOLOV3 CPU]  round 1
+  Loading ONNX: /home/ubuntu/dpu_benchmark/yolov3/models/yolov3-10.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 0.21  Lat: 4652.7±12.5ms  Power: 6.09W  FPS/W: 0.035  mJ/frame: 28353.318
+
+Round 1 complete. [06:23:37]
+============================================================
+ROUND 2 of 2  [06:23:37]
+============================================================
+CmaFree: 693764 kB ✓
+
+[RESNET50 DPU]  round 2
+  Loading xmodel: /home/ubuntu/dpu_benchmark/resnet50/models/dpu_resnet50.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 84.37  Lat: 11.9±0.1ms  Power: 7.78W  FPS/W: 10.851  mJ/frame: 92.157
+
+[RESNET50 CPU]  round 2
+  Loading ONNX: /home/ubuntu/dpu_benchmark/resnet50/models/resnet50-v1-7.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 1.59  Lat: 627.7±5.3ms  Power: 5.99W  FPS/W: 0.266  mJ/frame: 3758.775
+
+[INCEPTIONV1 DPU]  round 2
+  Loading xmodel: /home/ubuntu/dpu_benchmark/inceptionv1/models/dpu_tf_inceptionv1.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 165.33  Lat: 6.0±0.1ms  Power: 7.44W  FPS/W: 22.215  mJ/frame: 45.016
+
+[INCEPTIONV1 CPU]  round 2
+  Loading ONNX: /home/ubuntu/dpu_benchmark/inceptionv1/models/inception-v1-9.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 3.84  Lat: 260.1±4.9ms  Power: 5.98W  FPS/W: 0.643  mJ/frame: 1554.070
+
+[YOLOV3 DPU]  round 2
+  Loading xmodel: /home/ubuntu/dpu_benchmark/yolov3/models/tf_yolov3_voc.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 13.23  Lat: 75.6±0.1ms  Power: 9.04W  FPS/W: 1.463  mJ/frame: 683.494
+
+[YOLOV3 CPU]  round 2
+  Loading ONNX: /home/ubuntu/dpu_benchmark/yolov3/models/yolov3-10.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 0.22  Lat: 4644.1±13.5ms  Power: 6.10W  FPS/W: 0.035  mJ/frame: 28308.754
+
+Round 2 complete. [06:33:23]
+
+============================================================
+ALL DONE — 2026-08-12 06:33:23
+Results in: /home/ubuntu/dpu_benchmark/RESULTS.md
+
+KV260 Benchmark — rounds 3–10, 100 frames each
+Results → /home/ubuntu/dpu_benchmark/RESULTS.md
+Started: 2026-08-12 06:33:44
+
+Appending to existing /home/ubuntu/dpu_benchmark/RESULTS.md
+Loading DPU overlay...
+DPU overlay loaded.
+
+============================================================
+ROUND 3 of 10  [06:33:46]
+============================================================
+CmaFree: 881340 kB ✓
+
+[RESNET50 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/resnet50/models/dpu_resnet50.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 84.54  Lat: 11.8±0.1ms  Power: 7.71W  FPS/W: 10.960  mJ/frame: 91.240
+
+[RESNET50 CPU]  round 3
+[0;93m2026-08-12 06:33:48.187932832 [W:onnxruntime:Default, device_discovery.cc:164 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:89 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+  Loading ONNX: /home/ubuntu/dpu_benchmark/resnet50/models/resnet50-v1-7.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 1.59  Lat: 629.0±5.7ms  Power: 6.01W  FPS/W: 0.265  mJ/frame: 3779.351
+
+[INCEPTIONV1 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/inceptionv1/models/dpu_tf_inceptionv1.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 166.20  Lat: 6.0±0.0ms  Power: 7.38W  FPS/W: 22.520  mJ/frame: 44.405
+
+[INCEPTIONV1 CPU]  round 3
+  Loading ONNX: /home/ubuntu/dpu_benchmark/inceptionv1/models/inception-v1-9.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 3.86  Lat: 258.8±4.0ms  Power: 5.98W  FPS/W: 0.647  mJ/frame: 1546.360
+
+[YOLOV3 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/yolov3/models/tf_yolov3_voc.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 13.24  Lat: 75.5±0.1ms  Power: 9.04W  FPS/W: 1.464  mJ/frame: 683.210
+
+[YOLOV3 CPU]  round 3
+  Loading ONNX: /home/ubuntu/dpu_benchmark/yolov3/models/yolov3-10.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+
+KV260 Benchmark — rounds 3–10, 100 frames each
+Results → /home/ubuntu/dpu_benchmark/RESULTS.md
+Started: 2026-08-12 06:36:25
+
+Appending to existing /home/ubuntu/dpu_benchmark/RESULTS.md
+Loading DPU overlay...
+DPU overlay loaded.
+
+============================================================
+ROUND 3 of 10  [06:36:27]
+============================================================
+CmaFree: 504420 kB ✓
+
+[RESNET50 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/resnet50/models/dpu_resnet50.xmodel
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0812 06:36:27.736979  8811 xrt_device_handle_imp.cpp:249] waiting for process to release the resource: DPU_0
+
+KV260 Benchmark — rounds 3–10, 100 frames each
+Results → /home/ubuntu/dpu_benchmark/RESULTS.md
+Started: 2026-08-12 06:39:27
+
+Appending to existing /home/ubuntu/dpu_benchmark/RESULTS.md
+Loading DPU overlay...
+DPU overlay loaded.
+
+============================================================
+ROUND 3 of 10  [06:39:28]
+============================================================
+CmaFree: 879368 kB ✓
+
+[RESNET50 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/resnet50/models/dpu_resnet50.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 84.43  Lat: 11.8±0.1ms  Power: 7.79W  FPS/W: 10.842  mJ/frame: 92.230
+
+[RESNET50 CPU]  round 3
+[0;93m2026-08-12 06:39:30.913194585 [W:onnxruntime:Default, device_discovery.cc:164 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:89 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+  Loading ONNX: /home/ubuntu/dpu_benchmark/resnet50/models/resnet50-v1-7.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 1.59  Lat: 629.8±5.5ms  Power: 6.01W  FPS/W: 0.264  mJ/frame: 3784.210
+
+[INCEPTIONV1 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/inceptionv1/models/dpu_tf_inceptionv1.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 165.73  Lat: 6.0±0.1ms  Power: 7.43W  FPS/W: 22.298  mJ/frame: 44.846
+
+[INCEPTIONV1 CPU]  round 3
+  Loading ONNX: /home/ubuntu/dpu_benchmark/inceptionv1/models/inception-v1-9.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 3.86  Lat: 259.1±3.0ms  Power: 6.00W  FPS/W: 0.643  mJ/frame: 1554.689
+
+[YOLOV3 DPU]  round 3
+  Loading xmodel: /home/ubuntu/dpu_benchmark/yolov3/models/tf_yolov3_voc.xmodel
+  Warmup (10 frames)...
+  Benchmarking (100 frames)...
+  → FPS: 13.24  Lat: 75.6±0.1ms  Power: 9.03W  FPS/W: 1.465  mJ/frame: 682.571
+
+[YOLOV3 CPU]  round 3
+  Loading ONNX: /home/ubuntu/dpu_benchmark/yolov3/models/yolov3-10.onnx
+  Warmup (3 frames)...
+  Benchmarking (100 frames)...
